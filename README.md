@@ -320,34 +320,32 @@ GAS를 활성화하기 위해 해야 할 일은 이것이 전부입니다. 여�
 **[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-asc-setup"></a>
-### 4.1.2 Setup and Initialization
-`ASCs` are typically constructed in the `OwnerActor's` constructor and explicitly marked replicated. **This must be done in C++**.
+### 4.1.2 설정 및 초기화
+`ASC`는 일반적으로 `OwnerActor`의 생성자에서 구성되며 명시적으로 복제되도록 표시됩니다. **이는 반드시 C++에서 수행해야 합니다**.
 
 ```c++
 AGDPlayerState::AGDPlayerState()
 {
-	// Create ability system component, and set it to be explicitly replicated
+	// 어빌리티 시스템 컴포넌트를 생성하고 명시적으로 복제되도록 설정
 	AbilitySystemComponent = CreateDefaultSubobject<UGDAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	//...
 }
 ```
 
-The `ASC` needs to be initialized with its `OwnerActor` and `AvatarActor` on both the server and the client. You want to initialize after the `Pawn's` `Controller` has been set (after possession). Single player games only need to worry about the server path.
+`ASC`는 서버와 클라이언트 모두에서 `OwnerActor`와 `AvatarActor`로 초기화되어야 합니다. `Pawn`의 `Controller`가 설정된 후(소유 후)에 초기화하고자 합니다. 싱글 플레이어 게임은 서버 경로만 고려하면 됩니다.
 
-For player controlled characters where the `ASC` lives on the `Pawn`, I typically initialize on the server in the `Pawn's` `PossessedBy()` function and initialize on the client in the `PlayerController's` `AcknowledgePossession()` function.
+`ASC`가 `Pawn`에 있는 플레이어 제어 캐릭터의 경우, 일반적으로 서버에서는 `Pawn`의 `PossessedBy()` 함수에서 초기화하고 클라이언트에서는 `PlayerController`의 `AcknowledgePossession()` 함수에서 초기화합니다.
 
 ```c++
 void APACharacterBase::PossessedBy(AController * NewController)
 {
 	Super::PossessedBy(NewController);
-
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	}
-
-	// ASC MixedMode replication requires that the ASC Owner's Owner be the Controller.
+	// ASC MixedMode 복제는 ASC 소유자의 소유자가 Controller여야 합니다.
 	SetOwner(NewController);
 }
 ```
@@ -356,32 +354,28 @@ void APACharacterBase::PossessedBy(AController * NewController)
 void APAPlayerControllerBase::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
-
 	APACharacterBase* CharacterBase = Cast<APACharacterBase>(P);
 	if (CharacterBase)
 	{
 		CharacterBase->GetAbilitySystemComponent()->InitAbilityActorInfo(CharacterBase, CharacterBase);
 	}
-
 	//...
 }
 ```
 
-For player controlled characters where the `ASC` lives on the `PlayerState`, I typically initialize the server in the `Pawn's` `PossessedBy()` function and initialize on the client in the `Pawn's` `OnRep_PlayerState()` function. This ensures that the `PlayerState` exists on the client.
+`ASC`가 `PlayerState`에 있는 플레이어 제어 캐릭터의 경우, 일반적으로 서버에서는 `Pawn`의 `PossessedBy()` 함수에서 초기화하고 클라이언트에서는 `Pawn`의 `OnRep_PlayerState()` 함수에서 초기화합니다. 이는 클라이언트에서 `PlayerState`가 존재함을 보장합니다.
 
 ```c++
-// Server only
+// 서버에서만
 void AGDHeroCharacter::PossessedBy(AController * NewController)
 {
 	Super::PossessedBy(NewController);
-
 	AGDPlayerState* PS = GetPlayerState<AGDPlayerState>();
 	if (PS)
 	{
-		// Set the ASC on the Server. Clients do this in OnRep_PlayerState()
+		// 서버에서 ASC를 설정합니다. 클라이언트는 OnRep_PlayerState()에서 이를 수행합니다.
 		AbilitySystemComponent = Cast<UGDAbilitySystemComponent>(PS->GetAbilitySystemComponent());
-
-		// AI won't have PlayerControllers so we can init again here just to be sure. No harm in initing twice for heroes that have PlayerControllers.
+		// AI는 PlayerController를 가지지 않으므로 여기서 다시 초기화할 수 있습니다. PlayerController를 가진 영웅의 경우 두 번 초기화해도 해롭지 않습니다.
 		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
 	}
 	
@@ -390,90 +384,87 @@ void AGDHeroCharacter::PossessedBy(AController * NewController)
 ```
 
 ```c++
-// Client only
+// 클라이언트에서만
 void AGDHeroCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
 	AGDPlayerState* PS = GetPlayerState<AGDPlayerState>();
 	if (PS)
 	{
-		// Set the ASC for clients. Server does this in PossessedBy.
+		// 클라이언트를 위해 ASC를 설정합니다. 서버는 PossessedBy에서 이를 수행합니다.
 		AbilitySystemComponent = Cast<UGDAbilitySystemComponent>(PS->GetAbilitySystemComponent());
-
-		// Init ASC Actor Info for clients. Server will init its ASC when it possesses a new Actor.
+		// 클라이언트를 위해 ASC Actor 정보를 초기화합니다. 서버는 새로운 Actor를 소유할 때 ASC를 초기화합니다.
 		AbilitySystemComponent->InitAbilityActorInfo(PS, this);
 	}
-
 	// ...
 }
 ```
 
-If you get the error message `LogAbilitySystem: Warning: Can't activate LocalOnly or LocalPredicted ability %s when not local!` then you did not initialize your `ASC` on the client.
-
+`LogAbilitySystem: Warning: Can't activate LocalOnly or LocalPredicted ability %s when not local!` 오류 메시지가 나타나면 클라이언트에서 `ASC`를 초기화하지 않은 것입니다.
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-gt"></a>
-### 4.2 Gameplay Tags
-[`FGameplayTags`](https://docs.unrealengine.com/en-US/API/Runtime/GameplayTags/FGameplayTag/index.html) are hierarchical names in the form of `Parent.Child.Grandchild...` that are registered with the `GameplayTagManager`. These tags are incredibly useful for classifying and describing the state of an object. For example, if a character is stunned, we could give it a `State.Debuff.Stun` `GameplayTag` for the duration of the stun.
+### 4.2 게임플레이 태그
 
-You will find yourself replacing things that you used to handle with booleans or enums with `GameplayTags` and doing boolean logic on whether or not objects have certain `GameplayTags`.
+[`FGameplayTags`](https://docs.unrealengine.com/en-US/API/Runtime/GameplayTags/FGameplayTag/index.html)는 `Parent.Child.Grandchild...` 형태의 계층적 이름으로, `GameplayTagManager`에 등록됩니다. 이 태그들은 객체의 상태를 분류하고 설명하는 데 매우 유용합니다. 예를 들어, 캐릭터가 기절했다면 기절 지속 시간 동안 `State.Debuff.Stun` `GameplayTag`를 부여할 수 있습니다.
 
-When giving tags to an object, we typically add them to its `ASC` if it has one so that GAS can interact with them. `UAbilitySystemComponent` implements the `IGameplayTagAssetInterface` giving functions to access its owned `GameplayTags`.
+불리언이나 열거형으로 처리하던 것들을 `GameplayTags`로 대체하고, 객체가 특정 `GameplayTags`를 가지고 있는지에 대한 불리언 로직을 수행하게 될 것입니다.
 
-Multiple `GameplayTags` can be stored in an `FGameplayTagContainer`. It is preferable to use a `GameplayTagContainer` over a `TArray<FGameplayTag>` since the `GameplayTagContainers` add some efficiency magic. While tags are standard `FNames`, they can be efficiently packed together in `FGameplayTagContainers` for replication if `Fast Replication` is enabled in the project settings. `Fast Replication` requires that the server and the clients have the same list of `GameplayTags`. This generally shouldn't be a problem so you should enable this option. `GameplayTagContainers` can also return a `TArray<FGameplayTag>` for iteration.
+객체에 태그를 부여할 때, 일반적으로 GAS가 이와 상호작용할 수 있도록 ASC가 있는 경우 ASC에 추가합니다. `UAbilitySystemComponent`는 `IGameplayTagAssetInterface`를 구현하여 소유한 `GameplayTags`에 접근하는 함수를 제공합니다.
 
-`GameplayTags` stored in `FGameplayTagCountContainer` have a `TagMap` that stores the number of instances of that `GameplayTag`. A `FGameplayTagCountContainer` may still have the `GameplayTag` in it but its `TagMapCount` is zero. You may encounter this while debugging if an `ASC` still has a `GameplayTag`. Any of the `HasTag()` or `HasMatchingTag()` or similar functions will check the `TagMapCount` and return false if the `GameplayTag` is not present or its `TagMapCount` is zero.
+여러 `GameplayTags`는 `FGameplayTagContainer`에 저장될 수 있습니다. `GameplayTagContainers`가 일부 효율성 매직을 추가하기 때문에 `TArray<FGameplayTag>` 대신 `GameplayTagContainer`를 사용하는 것이 좋습니다. 태그는 표준 `FNames`이지만, 프로젝트 설정에서 `Fast Replication`이 활성화된 경우 `FGameplayTagContainers`에서 복제를 위해 효율적으로 압축될 수 있습니다. `Fast Replication`은 서버와 클라이언트가 동일한 `GameplayTags` 목록을 가지고 있어야 합니다. 일반적으로 이는 문제가 되지 않으므로 이 옵션을 활성화해야 합니다. `GameplayTagContainers`는 반복을 위해 `TArray<FGameplayTag>`를 반환할 수도 있습니다.
 
-`GameplayTags` must be defined ahead of time in the `DefaultGameplayTags.ini`. The Unreal Engine Editor provides an interface in the project settings to let developers manage `GameplayTags` without needing to manually edit the `DefaultGameplayTags.ini`. The `GameplayTag` editor can create, rename, search for references, and delete `GameplayTags`.
+`FGameplayTagCountContainer`에 저장된 `GameplayTags`는 해당 `GameplayTag`의 인스턴스 수를 저장하는 `TagMap`을 가집니다. `FGameplayTagCountContainer`는 여전히 `GameplayTag`를 가지고 있을 수 있지만 `TagMapCount`가 0일 수 있습니다. ASC가 여전히 `GameplayTag`를 가지고 있는지 디버깅하는 동안 이를 발견할 수 있습니다. `HasTag()` 또는 `HasMatchingTag()` 또는 유사한 함수는 `TagMapCount`를 확인하고 `GameplayTag`가 없거나 `TagMapCount`가 0이면 false를 반환합니다.
 
-![GameplayTag Editor in Project Settings](https://github.com/tranek/GASDocumentation/raw/master/Images/gameplaytageditor.png)
+`GameplayTags`는 `DefaultGameplayTags.ini`에 미리 정의되어야 합니다. 언리얼 엔진 에디터는 개발자가 `DefaultGameplayTags.ini`를 수동으로 편집할 필요 없이 `GameplayTags`를 관리할 수 있는 프로젝트 설정 인터페이스를 제공합니다. `GameplayTag` 에디터는 `GameplayTags`를 생성, 이름 변경, 참조 검색, 삭제할 수 있습니다.
 
-Searching for `GameplayTag` references will bring up the familiar `Reference Viewer` graph in the Editor showing all the assets that reference the `GameplayTag`. This will not however show any C++ classes that reference the `GameplayTag`.
+![프로젝트 설정의 GameplayTag 에디터](https://github.com/tranek/GASDocumentation/raw/master/Images/gameplaytageditor.png)
 
-Renaming `GameplayTags` creates a redirect so that assets still referencing the original `GameplayTag` can redirect to the new `GameplayTag`. I prefer if possible to instead create a new `GameplayTag`, update all the references manually to the new `GameplayTag`, and then delete the old `GameplayTag` to avoid creating a redirect.
+`GameplayTag` 참조 검색은 익숙한 `Reference Viewer` 그래프를 에디터에 표시하여 `GameplayTag`를 참조하는 모든 에셋을 보여줍니다. 그러나 이는 `GameplayTag`를 참조하는 C++ 클래스는 보여주지 않습니다.
 
-In addition to `Fast Replication`, the `GameplayTag` editor has an option to fill in commonly replicated `GameplayTags` to optimize them further.
+`GameplayTags`의 이름을 변경하면 리디렉션이 생성되어 원래 `GameplayTag`를 여전히 참조하는 에셋이 새로운 `GameplayTag`로 리디렉션될 수 있습니다. 가능하다면 리디렉션 생성을 피하기 위해 새로운 `GameplayTag`를 생성하고, 모든 참조를 새로운 `GameplayTag`로 수동으로 업데이트한 다음 이전 `GameplayTag`를 삭제하는 것을 선호합니다.
 
-`GameplayTags` are replicated if they're added from a `GameplayEffect`. The `ASC` allows you to add `LooseGameplayTags` that are not replicated and must be managed manually. The Sample Project uses a `LooseGameplayTag` for `State.Dead` so that the owning clients can immediately respond to when their health drops to zero. Respawning manually sets the `TagMapCount` back to zero. Only manually adjust the `TagMapCount` when working with `LooseGameplayTags`. It is preferable to use the `UAbilitySystemComponent::AddLooseGameplayTag()` and `UAbilitySystemComponent::RemoveLooseGameplayTag()` functions than manually adjusting the `TagMapCount`.
+`Fast Replication` 외에도 `GameplayTag` 에디터에는 일반적으로 복제되는 `GameplayTags`를 채워 더욱 최적화하는 옵션이 있습니다.
 
-Getting a reference to a `GameplayTag` in C++:
+`GameplayTags`는 `GameplayEffect`에서 추가된 경우 복제됩니다. ASC는 복제되지 않고 수동으로 관리해야 하는 `LooseGameplayTags`를 추가할 수 있게 합니다. 샘플 프로젝트는 `State.Dead`에 대해 `LooseGameplayTag`를 사용하여 소유 클라이언트가 체력이 0으로 떨어질 때 즉시 반응할 수 있도록 합니다. 리스폰은 수동으로 `TagMapCount`를 0으로 설정합니다. `LooseGameplayTags`로 작업할 때만 `TagMapCount`를 수동으로 조정하세요. `TagMapCount`를 수동으로 조정하는 것보다 `UAbilitySystemComponent::AddLooseGameplayTag()` 및 `UAbilitySystemComponent::RemoveLooseGameplayTag()` 함수를 사용하는 것이 좋습니다.
+
+C++에서 `GameplayTag` 참조 가져오기:
 ```c++
 FGameplayTag::RequestGameplayTag(FName("Your.GameplayTag.Name"))
 ```
 
-For advanced `GameplayTag` manipulation like getting the parent or children `GameplayTags`, look at the functions offered by the `GameplayTagManager`. To access the `GameplayTagManager`, include `GameplayTagManager.h` and call it with `UGameplayTagManager::Get().FunctionName`. The `GameplayTagManager` actually stores the `GameplayTags` as relational nodes (parent, child, etc) for faster processing than constant string manipulation and comparisons.
+부모나 자식 `GameplayTags` 가져오기와 같은 고급 `GameplayTag` 조작을 위해서는 `GameplayTagManager`가 제공하는 함수를 살펴보세요. `GameplayTagManager`에 접근하려면 `GameplayTagManager.h`를 포함하고 `UGameplayTagManager::Get().FunctionName`으로 호출하세요. `GameplayTagManager`는 실제로 `GameplayTags`를 관계형 노드(부모, 자식 등)로 저장하여 지속적인 문자열 조작 및 비교보다 더 빠른 처리를 가능하게 합니다.
 
-`GameplayTags` and `GameplayTagContainers` can have the optional `UPROPERTY` specifier `Meta = (Categories = "GameplayCue")` that filters the tags in the Blueprint to show only `GameplayTags` that have the parent tag of `GameplayCue`. This is useful when you know the `GameplayTag` or `GameplayTagContainer` variable should only be used for `GameplayCues`.
+`GameplayTags`와 `GameplayTagContainers`는 선택적으로 `UPROPERTY` 지정자 `Meta = (Categories = "GameplayCue")`를 가질 수 있으며, 이는 블루프린트에서 태그를 필터링하여 `GameplayCue` 부모 태그를 가진 `GameplayTags`만 표시합니다. 이는 `GameplayTag` 또는 `GameplayTagContainer` 변수가 `GameplayCues`에만 사용되어야 한다는 것을 알고 있을 때 유용합니다.
 
-Alternatively, there's a separate structure called `FGameplayCueTag` that encapsulates a `FGameplayTag` and also automatically filters `GameplayTags` in Blueprint to only show those tags with the parent tag of `GameplayCue`.
+또는 `FGameplayCueTag`라는 별도의 구조체가 있어 `FGameplayTag`를 캡슐화하고 블루프린트에서 `GameplayTags`를 자동으로 필터링하여 `GameplayCue` 부모 태그를 가진 태그만 표시합니다.
 
-If you want to filter a `GameplayTag` parameter in a function, use the `UFUNCTION` specifier `Meta = (GameplayTagFilter = "GameplayCue")`. `GameplayTagContainer` parameters in functions can not be filtered. If you would like to edit your engine to allow this, look at how `SGameplayTagGraphPin::ParseDefaultValueData()` from `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagGraphPin.cpp` calls `FilterString = UGameplayTagsManager::Get().GetCategoriesMetaFromField(PinStructType);` and passes `FilterString` to `SGameplayTagWidget` in `SGameplayTagGraphPin::GetListContent()`. The `GameplayTagContainer` version of these functions in `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagContainerGraphPin.cpp` do not check for the meta field properties and pass along the filter.
+함수의 `GameplayTag` 매개변수를 필터링하려면 `UFUNCTION` 지정자 `Meta = (GameplayTagFilter = "GameplayCue")`를 사용하세요. 함수의 `GameplayTagContainer` 매개변수는 필터링할 수 없습니다. 엔진을 편집하여 이를 허용하고 싶다면, `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagGraphPin.cpp`의 `SGameplayTagGraphPin::ParseDefaultValueData()`가 `FilterString = UGameplayTagsManager::Get().GetCategoriesMetaFromField(PinStructType);`를 호출하고 `SGameplayTagGraphPin::GetListContent()`에서 `SGameplayTagWidget`에 `FilterString`을 전달하는 방법을 살펴보세요. `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagContainerGraphPin.cpp`의 `GameplayTagContainer` 버전 함수는 메타 필드 속성을 확인하지 않고 필터를 전달하지 않습니다.
 
-The Sample Project extensively uses `GameplayTags`.
+샘플 프로젝트는 `GameplayTags`를 광범위하게 사용합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-gt-change"></a>
-### 4.2.1 Responding to Changes in Gameplay Tags
-The `ASC` provides a delegate for when `GameplayTags` are added or removed. It takes in a `EGameplayTagEventType` that can specify only to fire when the `GameplayTag` is added/removed or for any change in the `GameplayTag's` `TagMapCount`.
+### 4.2.1 게임플레이 태그 변경에 대한 응답
+ASC는 `GameplayTags`가 추가되거나 제거될 때 델리게이트를 제공합니다. 이는 `GameplayTag`가 추가/제거될 때만 실행되거나 `GameplayTag`의 `TagMapCount`의 모든 변경에 대해 실행되도록 지정할 수 있는 `EGameplayTagEventType`을 받습니다.
 
 ```c++
 AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag(FName("State.Debuff.Stun")), EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AGDPlayerState::StunTagChanged);
 ```
 
-The callback function has a parameter for the `GameplayTag` and the new `TagCount`.
+콜백 함수는 `GameplayTag`와 새로운 `TagCount`에 대한 매개변수를 가집니다.
 ```c++
 virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 ```
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-gt-loadfromplugin"></a>
-### 4.2.2 Loading Gameplay Tags from Plugin .ini Files
-If you create a plugin with its own .ini files with `GameplayTags`, you can load that plugin's `GameplayTag` .ini directory in your plugin's `StartupModule()` function.
+### 4.2.2 플러그인 .ini 파일에서 게임플레이 태그 로딩
+`GameplayTags`가 있는 자체 .ini 파일을 가진 플러그인을 만든 경우, 플러그인의 `StartupModule()` 함수에서 해당 플러그인의 `GameplayTag` .ini 디렉토리를 로드할 수 있습니다.
 
-For example, this is how the CommonConversation plugin that comes with Unreal Engine does it:
+예를 들어, 언리얼 엔진과 함께 제공되는 CommonConversation 플러그인은 다음과 같이 수행합니다:
 
 ```c++
 void FCommonConversationRuntimeModule::StartupModule()
@@ -487,46 +478,46 @@ void FCommonConversationRuntimeModule::StartupModule()
 }
 ```
 
-This would look for the directory `Plugins\CommonConversation\Config\Tags` and load any .ini files with `GameplayTags` in them into your project when the Engine starts up if the plugin is enabled.
+이는 `Plugins\CommonConversation\Config\Tags` 디렉토리를 찾아 플러그인이 활성화된 경우 엔진이 시작될 때 해당 디렉토리의 `GameplayTags`가 포함된 모든 .ini 파일을 프로젝트에 로드합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-a"></a>
-### 4.3 Attributes
+### 4.3 어트리뷰트
 
 <a name="concepts-a-definition"></a>
-#### 4.3.1 Attribute Definition
-`Attributes` are float values defined by the struct [`FGameplayAttributeData`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/FGameplayAttributeData/index.html). These can represent anything from the amount of health a character has to the character's level to the number of charges that a potion has. If it is a gameplay-related numerical value belonging to an `Actor`, you should consider using an `Attribute` for it. `Attributes` should generally only be modified by [`GameplayEffects`](#concepts-ge) so that the ASC can [predict](#concepts-p) the changes.
+#### 4.3.1 어트리뷰트 정의
+`Attributes`는 [`FGameplayAttributeData`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/FGameplayAttributeData/index.html) 구조체로 정의된 float 값입니다. 이는 캐릭터의 체력량, 캐릭터의 레벨, 포션의 충전 횟수 등 다양한 것을 나타낼 수 있습니다. `Actor`에 속하는 게임플레이 관련 수치 값이라면 `Attribute`를 사용하는 것을 고려해야 합니다. `Attributes`는 일반적으로 ASC가 변경을 [예측](#concepts-p)할 수 있도록 [`GameplayEffects`](#concepts-ge)에 의해서만 수정되어야 합니다.
 
-`Attributes` are defined by and live in an [`AttributeSet`](#concepts-as). The `AttributeSet` is responsible for replicating `Attributes` that are marked for replication. See the section on [`AttributeSets`](#concepts-as) for how to define `Attributes`.
+`Attributes`는 [`AttributeSet`](#concepts-as)에 의해 정의되고 그 안에 존재합니다. `AttributeSet`는 복제를 위해 표시된 `Attributes`를 복제하는 책임을 집니다. `Attributes` 정의 방법에 대해서는 [`AttributeSets`](#concepts-as) 섹션을 참조하세요.
 
-**Tip:** If you don't want an `Attribute` to show up in the Editor's list of `Attributes`, you can use the `Meta = (HideInDetailsView)` `property specifier`.
+**팁:** 에디터의 `Attributes` 목록에 `Attribute`가 표시되지 않게 하려면 `Meta = (HideInDetailsView)` `property specifier`를 사용할 수 있습니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-a-value"></a>
 #### 4.3.2 BaseValue vs CurrentValue
-An `Attribute` is composed of two values - a `BaseValue` and a `CurrentValue`. The `BaseValue` is the permanent value of the `Attribute` whereas the `CurrentValue` is the `BaseValue` plus temporary modifications from `GameplayEffects`. For example, your `Character` may have a movespeed `Attribute` with a `BaseValue` of 600 units/second. Since there are no `GameplayEffects` modifying the movespeed yet, the `CurrentValue` is also 600 u/s. If she gets a temporary 50 u/s movespeed buff, the `BaseValue` stays the same at 600 u/s while the `CurrentValue` is now 600 + 50 for a total of 650 u/s. When the movespeed buff expires, the `CurrentValue` reverts back to the `BaseValue` of 600 u/s.
+`Attribute`는 `BaseValue`와 `CurrentValue` 두 가지 값으로 구성됩니다. `BaseValue`는 `Attribute`의 영구적인 값이며, `CurrentValue`는 `BaseValue`에 `GameplayEffects`로부터의 임시 수정사항을 더한 값입니다. 예를 들어, 당신의 `Character`가 600 단위/초의 `BaseValue`를 가진 이동속도 `Attribute`를 가지고 있다고 가정해봅시다. 아직 이동속도를 수정하는 `GameplayEffects`가 없으므로 `CurrentValue`도 600 u/s입니다. 만약 임시로 50 u/s의 이동속도 버프를 받으면, `BaseValue`는 여전히 600 u/s로 유지되지만 `CurrentValue`는 600 + 50으로 총 650 u/s가 됩니다. 이동속도 버프가 만료되면 `CurrentValue`는 다시 `BaseValue`인 600 u/s로 돌아갑니다.
 
-Often beginners to GAS will confuse `BaseValue` with a maximum value for an `Attribute` and try to treat it as such. This is an incorrect approach. Maximum values for `Attributes` that can change or are referenced in abilities or UI should be treated as separate `Attributes`. For hardcoded maximum and minimum values, there is a way to define a `DataTable` with `FAttributeMetaData` that can set maximum and minimum values, but Epic's comment above the struct calls it a "work in progress". See `AttributeSet.h` for more information. To prevent confusion, I recommend that maximum values that can be referenced in abilities or UI be made as separate `Attributes` and hardcoded maximum and minimum values that are only used for clamping `Attributes` be defined as hardcoded floats in the `AttributeSet`. Clamping of `Attributes` is discussed in [PreAttributeChange()](#concepts-as-preattributechange) for changes to the `CurrentValue` and [PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute) for changes to the `BaseValue` from `GameplayEffects`.
+GAS 초보자들은 종종 `BaseValue`를 `Attribute`의 최대값으로 혼동하고 그렇게 취급하려고 합니다. 이는 잘못된 접근 방식입니다. 변경될 수 있거나 능력이나 UI에서 참조되는 `Attributes`의 최대값은 별도의 `Attributes`로 취급해야 합니다. 하드코딩된 최대값과 최소값의 경우, `FAttributeMetaData`로 `DataTable`을 정의하여 최대값과 최소값을 설정할 수 있는 방법이 있지만, Epic의 구조체 위의 주석은 이를 "진행 중인 작업"이라고 부릅니다. 자세한 정보는 `AttributeSet.h`를 참조하세요. 혼란을 방지하기 위해, 능력이나 UI에서 참조될 수 있는 최대값은 별도의 `Attributes`로 만들고, `Attributes`를 제한하는 데만 사용되는 하드코딩된 최대값과 최소값은 `AttributeSet`에서 하드코딩된 floats로 정의하는 것을 권장합니다. `Attributes`의 제한은 `CurrentValue` 변경에 대해서는 [PreAttributeChange()](#concepts-as-preattributechange)에서, `GameplayEffects`로부터의 `BaseValue` 변경에 대해서는 [PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute)에서 논의됩니다.
 
-Permanent changes to the `BaseValue` come from `Instant` `GameplayEffects` whereas `Duration` and `Infinite` `GameplayEffects` change the `CurrentValue`. Periodic `GameplayEffects` are treated like instant `GameplayEffects` and change the `BaseValue`.
+`BaseValue`의 영구적인 변경은 `Instant` `GameplayEffects`에서 오는 반면, `Duration` 및 `Infinite` `GameplayEffects`는 `CurrentValue`를 변경합니다. 주기적 `GameplayEffects`는 즉시 `GameplayEffects`처럼 취급되어 `BaseValue`를 변경합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-a-meta"></a>
-#### 4.3.3 Meta Attributes
-Some `Attributes` are treated as placeholders for temporary values that are intended to interact with `Attributes`. These are called `Meta Attributes`. For example, we commonly define damage as a `Meta Attribute`. Instead of a `GameplayEffect` directly changing our health `Attribute`, we use a `Meta Attribute` called damage as a placeholder. This way the damage value can be modified with buffs and debuffs in an [`GameplayEffectExecutionCalculation`](#concepts-ge-ec) and can be further manipulated in the `AttributeSet`, for example subtracting the damage from a current shield `Attribute`, before finally subtracting the remainder from the health `Attribute`. The damage `Meta Attribute` has no persistence between `GameplayEffects` and is overriden by every one. `Meta Attributes` are not typically replicated.
+#### 4.3.3 메타 어트리뷰트
+일부 `Attributes`는 `Attributes`와 상호작용하기 위한 임시 값의 자리 표시자로 취급됩니다. 이를 `Meta Attributes`라고 합니다. 예를 들어, 우리는 일반적으로 데미지를 `Meta Attribute`로 정의합니다. `GameplayEffect`가 우리의 체력 `Attribute`를 직접 변경하는 대신, 우리는 데미지라는 `Meta Attribute`를 자리 표시자로 사용합니다. 이렇게 하면 데미지 값이 [`GameplayEffectExecutionCalculation`](#concepts-ge-ec)에서 버프와 디버프로 수정될 수 있고, `AttributeSet`에서 더 조작될 수 있습니다. 예를 들어, 현재 방어막 `Attribute`에서 데미지를 빼고, 마지막으로 나머지를 체력 `Attribute`에서 빼는 식입니다. 데미지 `Meta Attribute`는 `GameplayEffects` 사이에 지속성이 없으며 매번 덮어씁니다. `Meta Attributes`는 일반적으로 복제되지 않습니다.
 
-`Meta Attributes` provide a good logical separation for things like damage and healing between "How much damage did we do?" and "What do we do with this damage?". This logical separation means our `Gameplay Effects` and `Execution Calculations` don't need to know how the Target handles the damage. Continuing our damage example, the `Gameplay Effect` determines how much damage and then the `AttributeSet` decides what to do with that damage. Not all characters may have the same `Attributes`, especially if you use subclassed `AttributeSets`. The base `AttributeSet` class may only have a health `Attribute`, but a subclassed `AttributeSet` may add a shield `Attribute`. The subclassed `AttributeSet` with the shield `Attribute` would distribute the damage received differently than the base `AttributeSet` class.
+`Meta Attributes`는 데미지와 치유와 같은 것들에 대해 "얼마나 많은 데미지를 주었는가?"와 "이 데미지로 무엇을 할 것인가?" 사이의 좋은 논리적 분리를 제공합니다. 이러한 논리적 분리는 우리의 `Gameplay Effects`와 `Execution Calculations`이 대상이 데미지를 어떻게 처리하는지 알 필요가 없다는 것을 의미합니다. 데미지 예를 계속하면, `Gameplay Effect`는 얼마나 많은 데미지를 주는지 결정하고, 그 다음 `AttributeSet`가 그 데미지로 무엇을 할지 결정합니다. 모든 캐릭터가 동일한 `Attributes`를 가지고 있지 않을 수 있습니다. 특히 서브클래스된 `AttributeSets`을 사용하는 경우에 그렇습니다. 기본 `AttributeSet` 클래스는 체력 `Attribute`만 가지고 있을 수 있지만, 서브클래스된 `AttributeSet`는 방어막 `Attribute`를 추가할 수 있습니다. 방어막 `Attribute`가 있는 서브클래스된 `AttributeSet`는 받은 데미지를 기본 `AttributeSet` 클래스와는 다르게 분배할 것입니다.
 
-While `Meta Attributes` are a good design pattern, they are not mandatory. If you only ever have one `Execution Calculation` used for all instances of damage and one `Attribute Set` class shared by all characters, then you may be fine doing the damage distribution to health, shields, etc. inside of the `Execution Calculation` and directly modifying those `Attributes`. You'll only be sacrificing flexibility, but that may be okay for you.
+`Meta Attributes`는 좋은 설계 패턴이지만, 필수는 아닙니다. 모든 데미지 인스턴스에 대해 하나의 `Execution Calculation`만 사용하고 모든 캐릭터가 공유하는 하나의 `Attribute Set` 클래스만 있다면, `Execution Calculation` 내에서 체력, 방어막 등에 대한 데미지 분배를 수행하고 해당 `Attributes`를 직접 수정하는 것도 괜찮을 수 있습니다. 단지 유연성을 희생하게 되지만, 그것이 당신에게는 괜찮을 수 있습니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-a-changes"></a>
-#### 4.3.4 Responding to Attribute Changes
-To listen for when an `Attribute` changes to update the UI or other gameplay, use `UAbilitySystemComponent::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)`. This function returns a delegate that you can bind to that will be automatically called whenever an `Attribute` changes. The delegate provides a `FOnAttributeChangeData` parameter with the `NewValue`, `OldValue`, and `FGameplayEffectModCallbackData`. **Note:** The `FGameplayEffectModCallbackData` will only be set on the server.
+#### 4.3.4 어트리뷰트 변경에 대한 응답
+UI나 다른 게임플레이를 업데이트하기 위해 `Attribute`가 변경될 때 듣기 위해서는 `UAbilitySystemComponent::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)`를 사용하세요. 이 함수는 `Attribute`가 변경될 때마다 자동으로 호출되는 델리게이트를 반환합니다. 델리게이트는 `NewValue`, `OldValue`, 그리고 `FGameplayEffectModCallbackData`가 포함된 `FOnAttributeChangeData` 파라미터를 제공합니다. **주의:** `FGameplayEffectModCallbackData`는 서버에서만 설정됩니다.
 
 ```c++
 AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSetBase->GetHealthAttribute()).AddUObject(this, &AGDPlayerState::HealthChanged);
@@ -536,11 +527,11 @@ AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSetBase
 virtual void HealthChanged(const FOnAttributeChangeData& Data);
 ```
 
-The Sample Project binds to the `Attribute` value changed delegates on the `GDPlayerState` to update the HUD and to respond to player death when health reaches zero.
+샘플 프로젝트는 HUD를 업데이트하고 체력이 0에 도달했을 때 플레이어 사망에 응답하기 위해 `GDPlayerState`에서 `Attribute` 값 변경 델리게이트에 바인딩합니다.
 
-A custom Blueprint node that wraps this into an `ASyncTask` is included in the Sample Project. It is used in the `UI_HUD` UMG Widget to update the health, mana, and stamina values. This `AsyncTask` will live forever until manually called `EndTask()`, which we do in the UMG Widget's `Destruct` event. See `AsyncTaskAttributeChanged.h/cpp`.
+이를 `ASyncTask`로 감싸는 사용자 정의 블루프린트 노드가 샘플 프로젝트에 포함되어 있습니다. 이는 `UI_HUD` UMG 위젯에서 체력, 마나, 스태미나 값을 업데이트하는 데 사용됩니다. 이 `AsyncTask`는 수동으로 `EndTask()`를 호출할 때까지 영원히 살아있을 것입니다. 우리는 UMG 위젯의 `Destruct` 이벤트에서 이를 수행합니다. `AsyncTaskAttributeChanged.h/cpp`를 참조하세요.
 
-![Listen for Attribute Change BP Node](https://github.com/tranek/GASDocumentation/raw/master/Images/attributechange.png)
+![어트리뷰트 변경 듣기 BP 노드](https://github.com/tranek/GASDocumentation/raw/master/Images/attributechange.png)
 
 **[⬆ Back to Top](#table-of-contents)**
 
