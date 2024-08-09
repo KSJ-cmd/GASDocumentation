@@ -235,32 +235,6 @@ GAS의 현재 문제점:
 * 정적 `GameplayCues` (발사체 충돌 파티클 효과)
 * 액터 `GameplayCues` (질주 및 스턴 파티클 효과)
 
-The hero class has the following abilities:
-
-| Ability                    | Input Bind          | Predicted  | C++ / Blueprint | Description                                                                                                                                                                  |
-| -------------------------- | ------------------- | ---------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Jump                       | Space Bar           | Yes        | C++             | Makes the hero jump.                                                                                                                                                         |
-| Gun                        | Left Mouse Button   | No         | C++             | Fires a projectile from the hero's gun. The animation is predicted but the projectile is not.                                                                                |
-| Aim Down Sights            | Right Mouse Button  | Yes        | Blueprint       | While the button is held, the hero will walk slower and the camera will zoom in to allow more precise shots with the gun.                                                    |
-| Sprint                     | Left Shift          | Yes        | Blueprint       | While the button is held, the hero will run faster draining stamina.                                                                                                         |
-| Forward Dash               | Q                   | Yes        | Blueprint       | The hero dashes forward at the cost of stamina.                                                                                                                              |
-| Passive Armor Stacks       | Passive             | No         | Blueprint       | Every 4 seconds the hero gains a stack of armor up to a maximum of 4 stacks. Receiving damage removes one stack of armor.                                                    |
-| Meteor                     | R                   | No         | Blueprint       | Player targets a location to drop a meteor on the enemies causing damage and stunning them. The targeting is predicted while spawning the meteor is not.                     |
-
-It does not matter if `GameplayAbilities` are created in C++ or Blueprint. A mixture of the two were used here for example of how to do them in each language.
-
-Minions do not come with any predefined `GameplayAbilities`. The Red Minions have more health regen while the Blue Minions have higher starting health.
-
-For `GameplayAbility` naming, I used the suffix `_BP` to denote the `GameplayAbility's` logic was created in Blueprint. The lack of suffix means the logic was created in C++.
-
-**Blueprint Asset Naming Prefixes**
-
-| Prefix      | Asset Type          |
-| ----------- | ------------------- |
-| GA_         | GameplayAbility     |
-| GC_         | GameplayCue         |
-| GE_         | GameplayEffect      |
-
 히어로 클래스는 다음과 같은 능력을 가지고 있습니다:
 | 능력                       | 입력 바인딩         | 예측 여부  | C++ / 블루프린트 | 설명                                                                                                                                                                        |
 | -------------------------- | ------------------- | ---------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -284,6 +258,7 @@ For `GameplayAbility` naming, I used the suffix `_BP` to denote the `GameplayAbi
 | GA_         | GameplayAbility     |
 | GC_         | GameplayCue         |
 | GE_         | GameplayEffect      |
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="setup"></a>
