@@ -187,20 +187,21 @@ GameplayAbilitySystem 플러그인은 Epic Games에서 개발했으며 언리얼
 * 시각 효과나 사운드 효과 생성 ([GameplayCues](#concepts-gc))
 * 위에 언급된 모든 것의 리플리케이션
 
-In multiplayer games, GAS provides support for [client-side prediction](#concepts-p) of:
-* Ability activation
-* Playing animation montages
-* Changes to `Attributes`
-* Applying `GameplayTags`
-* Spawning `GameplayCues`
-* Movement via `RootMotionSource` functions connected to the `CharacterMovementComponent`.
+멀티플레이어 게임에서 GAS는 다음에 대한 [client-side prediction](#concepts-p) 예측을 지원합니다:
 
-**GAS must be set up in C++**, but `GameplayAbilities` and `GameplayEffects` can be created in Blueprint by the designers.
+* 어빌리티 활성화
+* 애니메이션 몽타주 재생
+* Attributes 변경
+* GameplayTags 적용
+* GameplayCues 생성
+* CharacterMovementComponent에 연결된 RootMotionSource 함수를 통한 이동
 
-Current issues with GAS:
-* `GameplayEffect` latency reconciliation (can't predict ability cooldowns resulting in players with higher latencies having lower rate of fire for low cooldown abilities compared to players with lower latencies).
-* Cannot predict the removal of `GameplayEffects`. We can however predict adding `GameplayEffects` with the inverse effects, effectively removing them. This is not always appropriate or feasible and still remains an issue.
-* Lack of boilerplate templates, multiplayer examples, and documentation. Hopefully this helps with that!
+**GAS는 반드시 C++에서 설정해야 하지만**, GameplayAbilities와 GameplayEffects는 디자이너가 블루프린트에서 생성할 수 있습니다.
+
+GAS의 현재 문제점:
+*GameplayEffect 지연 시간 조정(어빌리티 쿨다운을 예측할 수 없어, 지연 시간이 높은 플레이어들이 지연 시간이 낮은 플레이어들에 비해 낮은 쿨다운 어빌리티의 발사 속도가 더 느림).
+*GameplayEffects의 제거를 예측할 수 없음. 하지만 역효과를 가진 GameplayEffects를 추가하여 예측함으로써 효과적으로 제거할 수 있습니다. 이는 항상 적절하거나 실현 가능한 것은 아니며 여전히 문제로 남아 있습니다.
+*상용구 템플릿, 멀티플레이어 예제, 문서의 부족. 이 문서가 그 부분에 도움이 되기를 바랍니다!
 
 **[⬆ Back to Top](#table-of-contents)**
 
