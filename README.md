@@ -1,9 +1,9 @@
 ﻿# GASDocumentation
-My understanding of Unreal Engine 5's GameplayAbilitySystem plugin (GAS) with a simple multiplayer sample project. This is not official documentation and neither this project nor myself are affiliated with Epic Games. I make no guarantee for the accuracy of this information.
+언리얼 엔진 5의 게임플레이 어빌리티 시스템 플러그인(GAS)에 대한 제 이해와 간단한 멀티플레이어 샘플 프로젝트입니다. 이는 공식 문서가 아니며, 이 프로젝트나 제 자신은 에픽 게임즈와 관련이 없습니다. 저는 이 정보의 정확성에 대해 어떠한 보증도 하지 않습니다.
 
-The goal of this documentation is to explain the major concepts and classes in GAS and provide some additional commentary based on my experience with it. There is a lot of 'tribal knowledge' of GAS among users in the community and I aim to share all of mine here.
+이 문서의 목표는 GAS의 주요 개념과 클래스를 설명하고, 제 경험을 바탕으로 한 추가적인 해설을 제공하는 것입니다. 커뮤니티 사용자들 사이에는 GAS에 대한 많은 '부족 지식'이 있으며, 저는 제가 가진 모든 지식을 여기에서 공유하는 것을 목표로 합니다.
 
-The Sample Project and documentation are current with **Unreal Engine 5.3** (UE5). There are branches of this documentation for older versions of Unreal Engine, but they are no longer supported and are liable to have bugs or out of date information. Please use the branch that matches your engine version.
+샘플 프로젝트와 문서는 현재 언리얼 엔진 5.3(UE5) 버전에 맞춰져 있습니다. 이 문서의 이전 언리얼 엔진 버전용 브랜치들이 있지만, 더 이상 지원되지 않으며 버그가 있거나 정보가 오래되었을 수 있습니다. 사용 중인 엔진 버전과 일치하는 브랜치를 사용해 주시기 바랍니다."
 
 [GASShooter](https://github.com/tranek/GASShooter) is a sister Sample Project demonstrating advanced techniques with GAS for a multiplayer FPS/TPS.
 
