@@ -206,34 +206,34 @@ GAS의 현재 문제점:
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="sp"></a>
-## 2. Sample Project
-A multiplayer third person shooter sample project is included with this documentation aimed at people new to the GameplayAbilitySystem Plugin but not new to Unreal Engine. Users are expected to know C++, Blueprints, UMG, Replication, and other intermediate topics in UE. This project provides an example of how to set up a basic third person shooter multiplayer-ready project with the `AbilitySystemComponent` (`ASC`) on the `PlayerState` class for player/AI controlled heroes and the `ASC` on the `Character` class for AI controlled minions.
+## 2. 샘플 프로젝트
+이 문서에는 GameplayAbilitySystem 플러그인을 처음 접하지만 언리얼 엔진에는 익숙한 사람들을 위한 멀티플레이어 3인칭 슈터 샘플 프로젝트가 포함되어 있습니다. 사용자들은 C++, 블루프린트, UMG, 리플리케이션 및 UE의 기타 중급 주제에 대해 알고 있어야 합니다. 이 프로젝트는 플레이어/AI가 제어하는 영웅의 경우 `PlayerState` 클래스에 `AbilitySystemComponent`(`ASC`)를 두고, AI가 제어하는 미니언의 경우 `Character` 클래스에 `ASC`를 둔 기본적인 3인칭 슈터 멀티플레이어 준비 프로젝트를 설정하는 방법의 예를 제공합니다.
 
-The goal is to keep this project simple while showing the GAS basics and demonstrating some commonly requested abilities with well-commented code. Because of its beginner focus, the project does not show advanced topics like [predicting projectiles](#concepts-p-spawn).
+이 프로젝트의 목표는 GAS 기본 사항을 보여주고 잘 주석 처리된 코드로 일반적으로 요청되는 몇 가지 능력을 시연하면서 단순함을 유지하는 것입니다. 초보자에 초점을 맞추고 있기 때문에, 이 프로젝트는 [predicting projectiles](#concepts-p-spawn)과 같은 고급 주제는 다루지 않습니다. 
 
-Concepts demonstrated:
-* `ASC` on `PlayerState` vs `Character`
-* Replicated `Attributes`
-* Replicated animation montages
+시연되는 개념:
+* `PlayerState` vs `Character`에서의 `ASC`
+* 복제된 `Attributes`
+* 복제된 애니메이션 몽타주
 * `GameplayTags`
-* Applying and removing `GameplayEffects` inside of and externally from `GameplayAbilities`
-* Applying damage mitigated by armor to change health of a character
+* `GameplayAbilities` 내부 및 외부에서 `GameplayEffects` 적용 및 제거
+* 방어구로 완화된 데미지를 캐릭터의 체력 변경에 적용
 * `GameplayEffectExecutionCalculations`
-* Stun effect
-* Death and respawn
-* Spawning actors (projectiles) from an ability on the server
-* Predictively changing the local player's speed with aim down sights and sprinting
-* Constantly draining stamina to sprint
-* Using mana to cast abilities
-* Passive abilities
-* Stacking `GameplayEffects`
-* Targeting actors
-* `GameplayAbilities` created in Blueprint
-* `GameplayAbilities` created in C++
-* Instanced per `Actor` `GameplayAbilities`
-* Non-Instanced `GameplayAbilities` (Jump)
-* Static `GameplayCues` (FireGun projectile impact particle effect)
-* Actor `GameplayCues` (Sprint and Stun particle effects)
+* 스턴 효과
+* 사망 및 리스폰
+* 서버에서 능력을 통한 액터(발사체) 생성
+* 조준 사격 및 질주 시 로컬 플레이어의 속도를 예측적으로 변경
+* 질주를 위해 지속적으로 스태미나 소모
+* 능력 사용을 위한 마나 사용
+* 패시브 능력
+* `GameplayEffects` 스택킹
+* 액터 타겟팅
+* 블루프린트에서 생성된 `GameplayAbilities`
+* C++에서 생성된 `GameplayAbilities`
+* `액터`별로 인스턴스화된 `GameplayAbilities`
+* 인스턴스화되지 않은 `GameplayAbilities` (점프)
+* 정적 `GameplayCues` (발사체 충돌 파티클 효과)
+* 액터 `GameplayCues` (질주 및 스턴 파티클 효과)
 
 The hero class has the following abilities:
 
