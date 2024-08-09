@@ -181,9 +181,9 @@ GameplayAbilitySystem 플러그인은 Epic Games에서 개발했으며 언리얼
 
 이 플러그인은 싱글플레이어 및 멀티플레이어 게임에서 다음과 같은 기능을 즉시 사용 가능한 솔루션으로 제공합니다:
 * 선택적 비용과 쿨다운이 있는 레벨 기반 캐릭터 능력이나 스킬 구현 ([GameplayAbilities](#concepts-ga))
-* 액터에 속한 수치형 Attributes 조작 ([Attributes](#concepts-a))
+* 액터에 속한 수치형 `Attributes` 조작 ([Attributes](#concepts-a))
 * 액터에 상태 효과 적용 ([GameplayEffects](#concepts-ge))
-* 액터에 GameplayTags 적용 ([GameplayTags](#concepts-gt))
+* 액터에 `GameplayTags` 적용 ([GameplayTags](#concepts-gt))
 * 시각 효과나 사운드 효과 생성 ([GameplayCues](#concepts-gc))
 * 위에 언급된 모든 것의 리플리케이션
 
@@ -191,16 +191,16 @@ GameplayAbilitySystem 플러그인은 Epic Games에서 개발했으며 언리얼
 
 * 어빌리티 활성화
 * 애니메이션 몽타주 재생
-* Attributes 변경
-* GameplayTags 적용
-* GameplayCues 생성
-* CharacterMovementComponent에 연결된 RootMotionSource 함수를 통한 이동
+* `Attributes` 변경
+* `GameplayTags` 적용
+* `GameplayCues` 생성
+* `CharacterMovementComponent`에 연결된 `RootMotionSource` 함수를 통한 이동
 
-**GAS는 반드시 C++에서 설정해야 하지만**, GameplayAbilities와 GameplayEffects는 디자이너가 블루프린트에서 생성할 수 있습니다.
+**GAS는 반드시 C++에서 설정해야 하지만**, `GameplayAbilities`와 `GameplayEffects`는 디자이너가 블루프린트에서 생성할 수 있습니다.
 
 GAS의 현재 문제점:
-* GameplayEffect 지연 시간 조정(어빌리티 쿨다운을 예측할 수 없어, 지연 시간이 높은 플레이어들이 지연 시간이 낮은 플레이어들에 비해 낮은 쿨다운 어빌리티의 발사 속도가 더 느림).
-* GameplayEffects의 제거를 예측할 수 없음. 하지만 역효과를 가진 GameplayEffects를 추가하여 예측함으로써 효과적으로 제거할 수 있습니다. 이는 항상 적절하거나 실현 가능한 것은 아니며 여전히 문제로 남아 있습니다.
+* `GameplayEffect` 지연 시간 조정(어빌리티 쿨다운을 예측할 수 없어, 지연 시간이 높은 플레이어들이 지연 시간이 낮은 플레이어들에 비해 낮은 쿨다운 어빌리티의 발사 속도가 더 느림).
+* `GameplayEffects`의 제거를 예측할 수 없음. 하지만 역효과를 가진 `GameplayEffects`를 추가하여 예측함으로써 효과적으로 제거할 수 있습니다. 이는 항상 적절하거나 실현 가능한 것은 아니며 여전히 문제로 남아 있습니다.
 * 상용구 템플릿, 멀티플레이어 예제, 문서의 부족. 이 문서가 그 부분에 도움이 되기를 바랍니다!
 
 **[⬆ Back to Top](#table-of-contents)**
@@ -261,6 +261,29 @@ For `GameplayAbility` naming, I used the suffix `_BP` to denote the `GameplayAbi
 | GC_         | GameplayCue         |
 | GE_         | GameplayEffect      |
 
+히어로 클래스는 다음과 같은 능력을 가지고 있습니다:
+| 능력                       | 입력 바인딩         | 예측 여부  | C++ / 블루프린트 | 설명                                                                                                                                                                        |
+| -------------------------- | ------------------- | ---------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 점프                       | 스페이스바          | 예         | C++              | 히어로를 점프하게 합니다.                                                                                                                                                    |
+| 총                         | 왼쪽 마우스 버튼    | 아니오     | C++              | 히어로의 총에서 발사체를 발사합니다. 애니메이션은 예측되지만 발사체는 예측되지 않습니다.                                                                                    |
+| 조준 사격                  | 오른쪽 마우스 버튼  | 예         | 블루프린트       | 버튼을 누르고 있는 동안 히어로의 걷는 속도가 느려지고 카메라가 확대되어 총으로 더 정확한 사격을 할 수 있게 합니다.                                                         |
+| 질주                       | 왼쪽 Shift          | 예         | 블루프린트       | 버튼을 누르고 있는 동안 히어로가 스태미나를 소모하며 더 빠르게 달립니다.                                                                                                    |
+| 전방 대시                  | Q                   | 예         | 블루프린트       | 히어로가 스태미나를 소모하며 전방으로 대시합니다.                                                                                                                            |
+| 패시브 방어구 스택         | 패시브              | 아니오     | 블루프린트       | 4초마다 히어로가 방어구 스택을 얻으며 최대 4 스택까지 쌓을 수 있습니다. 데미지를 받으면 방어구 스택이 하나 제거됩니다.                                                     |
+| 메테오                     | R                   | 아니오     | 블루프린트       | 플레이어가 적에게 데미지를 주고 기절시키는 메테오를 떨어뜨릴 위치를 지정합니다. 타겟팅은 예측되지만 메테오 생성은 예측되지 않습니다.                                       |
+
+`GameplayAbilities`가 C++에서 생성되었는지 블루프린트에서 생성되었는지는 중요하지 않습니다. 여기서는 각 언어에서 어떻게 구현하는지 예시를 위해 둘을 혼합하여 사용했습니다.
+
+미니언은 사전 정의된 `GameplayAbilities`를 가지고 있지 않습니다. 레드 미니언은 체력 재생이 더 많고 블루 미니언은 시작 체력이 더 높습니다.
+
+`GameplayAbility` 명명에 있어서, 블루프린트에서 생성된 `GameplayAbility`의 로직을 나타내기 위해 접미사 `_BP`를 사용했습니다. 접미사가 없으면 C++에서 로직이 생성되었음을 의미합니다.
+
+**블루프린트 에셋 명명 접두사**
+| 접두사      | 에셋 유형           |
+| ----------- | ------------------- |
+| GA_         | GameplayAbility     |
+| GC_         | GameplayCue         |
+| GE_         | GameplayEffect      |
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="setup"></a>
