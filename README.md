@@ -262,16 +262,6 @@ GAS의 현재 문제점:
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="setup"></a>
-## 3. Setting Up a Project Using GAS
-Basic steps to set up a project using GAS:
-1. Enable GameplayAbilitySystem plugin in the Editor
-1. Edit `YourProjectName.Build.cs` to add `"GameplayAbilities", "GameplayTags", "GameplayTasks"` to your `PrivateDependencyModuleNames`
-1. Refresh/Regenerate your Visual Studio project files
-1. Starting with 4.24 up to 5.2, it is mandatory to call `UAbilitySystemGlobals::Get().InitGlobalData()` to use [`TargetData`](#concepts-targeting-data). The Sample Project does this in `UAssetManager::StartInitialLoading()`. This is called automatically starting in 5.3. See [`InitGlobalData()`](#concepts-asg-initglobaldata) for more information.
-
-That's all that you have to do to enable GAS. From here, add an [`ASC`](#concepts-asc) and [`AttributeSet`](#concepts-as) to your `Character` or `PlayerState` and start making [`GameplayAbilities`](#concepts-ga) and [`GameplayEffects`](#concepts-ge)!
-
-<a name="setup"></a>
 ## 3. GAS를 사용하여 프로젝트 설정하기
 GAS를 사용하여 프로젝트를 설정하는 기본 단계:
 1. 에디터에서 GameplayAbilitySystem 플러그인 활성화
@@ -280,6 +270,7 @@ GAS를 사용하여 프로젝트를 설정하는 기본 단계:
 4. 4.24부터 5.2 버전까지는 [`TargetData`](#concepts-targeting-data)를 사용하기 위해 `UAbilitySystemGlobals::Get().InitGlobalData()`를 호출하는 것이 필수입니다. 샘플 프로젝트는 `UAssetManager::StartInitialLoading()`에서 이를 수행합니다. 5.3 버전부터는 자동으로 호출됩니다. 자세한 정보는 [`InitGlobalData()`](#concepts-asg-initglobaldata)를 참조하세요.
 
 GAS를 활성화하기 위해 해야 할 일은 이것이 전부입니다. 여기서부터 [`ASC`](#concepts-asc)와 [`AttributeSet`](#concepts-as)을 `Character`나 `PlayerState`에 추가하고 [`GameplayAbilities`](#concepts-ga)와 [`GameplayEffects`](#concepts-ge)를 만들기 시작하세요!
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts"></a>
