@@ -180,12 +180,12 @@ From the [Official Documentation](https://docs.unrealengine.com/en-US/Gameplay/G
 GameplayAbilitySystem 플러그인은 Epic Games에서 개발했으며 언리얼 엔진에 포함되어 있습니다. 이 플러그인은 Paragon과 Fortnite를 비롯한 여러 AAA 상업 게임에서 실전 검증을 거쳤습니다
 
 이 플러그인은 싱글플레이어 및 멀티플레이어 게임에서 다음과 같은 기능을 즉시 사용 가능한 솔루션으로 제공합니다:
-선택적 비용과 쿨다운이 있는 레벨 기반 캐릭터 능력이나 스킬 구현 ([GameplayAbilities](#concepts-ga))
-액터에 속한 수치형 Attributes 조작 ([Attributes](#concepts-a))
-액터에 상태 효과 적용 ([GameplayEffects](#concepts-ge))
-액터에 GameplayTags 적용 ([GameplayTags](#concepts-gt))
-시각 효과나 사운드 효과 생성 ([GameplayCues](#concepts-gc))
-위에 언급된 모든 것의 리플리케이션
+* 선택적 비용과 쿨다운이 있는 레벨 기반 캐릭터 능력이나 스킬 구현 ([GameplayAbilities](#concepts-ga))
+* 액터에 속한 수치형 Attributes 조작 ([Attributes](#concepts-a))
+* 액터에 상태 효과 적용 ([GameplayEffects](#concepts-ge))
+* 액터에 GameplayTags 적용 ([GameplayTags](#concepts-gt))
+* 시각 효과나 사운드 효과 생성 ([GameplayCues](#concepts-gc))
+* 위에 언급된 모든 것의 리플리케이션
 
 In multiplayer games, GAS provides support for [client-side prediction](#concepts-p) of:
 * Ability activation
