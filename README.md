@@ -274,50 +274,50 @@ GAS를 활성화하기 위해 해야 할 일은 이것이 전부입니다. 여�
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts"></a>
-## 4. GAS Concepts
+## 4. GAS 개념
 
-#### Sections
+#### 섹션
 
-> 4.1 [Ability System Component](#concepts-asc)  
-> 4.2 [Gameplay Tags](#concepts-gt)  
-> 4.3 [Attributes](#concepts-a)  
-> 4.4 [Attribute Set](#concepts-as)  
-> 4.5 [Gameplay Effects](#concepts-ge)  
-> 4.6 [Gameplay Abilities](#concepts-ga)  
-> 4.7 [Ability Tasks](#concepts-at)  
-> 4.8 [Gameplay Cues](#concepts-gc)  
-> 4.9 [Ability System Globals](#concepts-asg)  
-> 4.10 [Prediction](#concepts-p)
+> 4.1 [어빌리티 시스템 컴포넌트](#concepts-asc)  
+> 4.2 [게임플레이 태그](#concepts-gt)  
+> 4.3 [어트리뷰트](#concepts-a)  
+> 4.4 [어트리뷰트 세트](#concepts-as)  
+> 4.5 [게임플레이 이펙트](#concepts-ge)  
+> 4.6 [게임플레이 어빌리티](#concepts-ga)  
+> 4.7 [어빌리티 태스크](#concepts-at)  
+> 4.8 [게임플레이 큐](#concepts-gc)  
+> 4.9 [어빌리티 시스템 글로벌](#concepts-asg)  
+> 4.10 [예측](#concepts-p)
 
 <a name="concepts-asc"></a>
-### 4.1 Ability System Component
-The `AbilitySystemComponent` (`ASC`) is the heart of GAS. It's a `UActorComponent` ([`UAbilitySystemComponent`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAbilitySystemComponent/index.html)) that handles all interactions with the system. Any `Actor` that wishes to use [`GameplayAbilities`](#concepts-ga), have [`Attributes`](#concepts-a), or receive [`GameplayEffects`](#concepts-ge) must have one `ASC` attached to them. These objects all live inside of and are managed and replicated by (with the exception of `Attributes` which are replicated by their [`AttributeSet`](#concepts-as)) the `ASC`. Developers are expected but not required to subclass this.
+### 4.1 어빌리티 시스템 컴포넌트
+`AbilitySystemComponent`(`ASC`)는 GAS의 핵심입니다. 이는 시스템과의 모든 상호작용을 처리하는 `UActorComponent`([`UAbilitySystemComponent`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAbilitySystemComponent/index.html))입니다. [`GameplayAbilities`](#concepts-ga)를 사용하거나, [`Attributes`](#concepts-a)를 가지거나, [`GameplayEffects`](#concepts-ge)를 받고자 하는 모든 `Actor`는 하나의 `ASC`가 부착되어 있어야 합니다. 이러한 객체들은 모두 `ASC` 내부에 존재하며, `ASC`에 의해 관리되고 복제됩니다(단, `Attributes`는 [`AttributeSet`](#concepts-as)에 의해 복제됩니다). 개발자들은 이를 서브클래싱할 것으로 예상되지만 필수는 아닙니다.
 
-The `Actor` with the `ASC` attached to it is referred to as the `OwnerActor` of the `ASC`. The physical representation `Actor` of the `ASC` is called the `AvatarActor`. The `OwnerActor` and the `AvatarActor` can be the same `Actor` as in the case of a simple AI minion in a MOBA game. They can also be different `Actors` as in the case of a player controlled hero in a MOBA game where the `OwnerActor` is the `PlayerState` and the `AvatarActor` is the hero's `Character` class. Most `Actors` will have the `ASC` on themselves. If your `Actor` will respawn and need persistence of `Attributes` or `GameplayEffects` between spawns (like a hero in a MOBA), then the ideal location for the `ASC` is on the `PlayerState`.
+`ASC`가 부착된 `Actor`는 `ASC`의 `OwnerActor`라고 불립니다. `ASC`의 물리적 표현 `Actor`는 `AvatarActor`라고 불립니다. `OwnerActor`와 `AvatarActor`는 MOBA 게임의 단순한 AI 미니언의 경우처럼 동일한 `Actor`일 수 있습니다. 또한 MOBA 게임의 플레이어가 제어하는 영웅의 경우처럼 다른 `Actor`일 수도 있는데, 이 경우 `OwnerActor`는 `PlayerState`이고 `AvatarActor`는 영웅의 `Character` 클래스입니다. 대부분의 `Actor`는 자신에게 `ASC`를 가지게 될 것입니다. 만약 당신의 `Actor`가 리스폰되고 스폰 사이에 `Attributes`나 `GameplayEffects`의 지속성이 필요하다면(MOBA의 영웅처럼), `ASC`의 이상적인 위치는 `PlayerState`입니다.
 
-**Note:** If your `ASC` is on your `PlayerState`, then you will need to increase the `NetUpdateFrequency` of your `PlayerState`. It defaults to a very low value on the `PlayerState` and can cause delays or perceived lag before changes to things like `Attributes` and `GameplayTags` happen on the clients. Be sure to enable [`Adaptive Network Update Frequency`](https://docs.unrealengine.com/en-US/Gameplay/Networking/Actors/Properties/index.html#adaptivenetworkupdatefrequency), Fortnite uses it.
+**참고:** 만약 당신의 `ASC`가 `PlayerState`에 있다면, `PlayerState`의 `NetUpdateFrequency`를 증가시켜야 할 것입니다. `PlayerState`의 기본값은 매우 낮아서 `Attributes`와 `GameplayTags` 같은 것들의 변경이 클라이언트에 반영되기 전에 지연이나 인지된 지연이 발생할 수 있습니다. [`Adaptive Network Update Frequency`](https://docs.unrealengine.com/en-US/Gameplay/Networking/Actors/Properties/index.html#adaptivenetworkupdatefrequency)를 활성화하세요. Fortnite도 이를 사용합니다.
 
-Both, the `OwnerActor` and the `AvatarActor` if different `Actors`, should implement the `IAbilitySystemInterface`. This interface has one function that must be overriden, `UAbilitySystemComponent* GetAbilitySystemComponent() const`, which returns a pointer to its `ASC`. `ASCs` interact with each other internally to the system by looking for this interface function.
+`OwnerActor`와 `AvatarActor`가 다른 `Actor`인 경우, 둘 다 `IAbilitySystemInterface`를 구현해야 합니다. 이 인터페이스에는 반드시 오버라이드해야 하는 함수가 하나 있습니다: `UAbilitySystemComponent* GetAbilitySystemComponent() const`. 이 함수는 자신의 `ASC`에 대한 포인터를 반환합니다. `ASC`들은 시스템 내부적으로 이 인터페이스 함수를 찾아 서로 상호작용합니다.
 
-The `ASC` holds its current active `GameplayEffects` in `FActiveGameplayEffectsContainer ActiveGameplayEffects`.
+`ASC`는 현재 활성화된 `GameplayEffects`를 `FActiveGameplayEffectsContainer ActiveGameplayEffects`에 보관합니다.
 
-The `ASC` holds its granted `Gameplay Abilities` in `FGameplayAbilitySpecContainer ActivatableAbilities`. Any time that you plan to iterate over `ActivatableAbilities.Items`, be sure to add `ABILITYLIST_SCOPE_LOCK();` above your loop to lock the list from changing (due to removing an ability). Every `ABILITYLIST_SCOPE_LOCK();` in scope increments `AbilityScopeLockCount` and then decrements when it falls out of scope. Do not try to remove an ability inside the scope of `ABILITYLIST_SCOPE_LOCK();` (the clear ability functions check `AbilityScopeLockCount` internally to prevent removing abilities if the list is locked).
+`ASC`는 부여된 `Gameplay Abilities`를 `FGameplayAbilitySpecContainer ActivatableAbilities`에 보관합니다. `ActivatableAbilities.Items`를 순회할 계획이 있다면, 반드시 루프 위에 `ABILITYLIST_SCOPE_LOCK();`을 추가하여 리스트가 변경되지 않도록 잠가야 합니다(어빌리티 제거로 인한 변경 방지). 스코프 내의 모든 `ABILITYLIST_SCOPE_LOCK();`는 `AbilityScopeLockCount`를 증가시키고 스코프를 벗어나면 감소시킵니다. `ABILITYLIST_SCOPE_LOCK();`의 스코프 내에서 어빌리티를 제거하려고 하지 마세요(clear ability 함수들은 내부적으로 `AbilityScopeLockCount`를 확인하여 리스트가 잠겨있으면 어빌리티 제거를 방지합니다).
 
 <a name="concepts-asc-rm"></a>
-### 4.1.1 Replication Mode
-The `ASC` defines three different replication modes for replicating `GameplayEffects`, `GameplayTags`, and `GameplayCues` - `Full`, `Mixed`, and `Minimal`. `Attributes` are replicated by their `AttributeSet`.
+### 4.1.1 복제 모드
+`ASC`는 `GameplayEffects`, `GameplayTags`, 그리고 `GameplayCues`를 복제하기 위한 세 가지 다른 복제 모드를 정의합니다 - `Full`, `Mixed`, 그리고 `Minimal`. `Attributes`는 그들의 `AttributeSet`에 의해 복제됩니다.
 
-| Replication Mode   | When to Use                             | Description                                                                                                                    |
-| ------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Full`             | Single Player                           | Every `GameplayEffect` is replicated to every client.                                                                          |
-| `Mixed`            | Multiplayer, player controlled `Actors` | `GameplayEffects` are only replicated to the owning client. Only `GameplayTags` and `GameplayCues` are replicated to everyone. |
-| `Minimal`          | Multiplayer, AI controlled `Actors`     | `GameplayEffects` are never replicated to anyone. Only `GameplayTags` and `GameplayCues` are replicated to everyone.           |
+| 복제 모드          | 사용 시기                              | 설명                                                                                                                           |
+| ------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Full`             | 싱글 플레이어                          | 모든 `GameplayEffect`가 모든 클라이언트에 복제됩니다.                                                                          |
+| `Mixed`            | 멀티플레이어, 플레이어 제어 `Actors`   | `GameplayEffects`는 소유 클라이언트에만 복제됩니다. `GameplayTags`와 `GameplayCues`만 모두에게 복제됩니다.                    |
+| `Minimal`          | 멀티플레이어, AI 제어 `Actors`         | `GameplayEffects`는 누구에게도 복제되지 않습니다. `GameplayTags`와 `GameplayCues`만 모두에게 복제됩니다.                      |
 
-**Note:** `Mixed` replication mode expects the `OwnerActor's` `Owner` to be the `Controller`. `PlayerState's` `Owner` is the `Controller` by default but `Character's` is not. If using `Mixed` replication mode with the `OwnerActor` not the `PlayerState`, then you need to call `SetOwner()` on the `OwnerActor` with a valid `Controller`.
+**참고:** `Mixed` 복제 모드는 `OwnerActor`의 `Owner`가 `Controller`일 것으로 예상합니다. `PlayerState`의 `Owner`는 기본적으로 `Controller`이지만 `Character`의 경우는 그렇지 않습니다. `OwnerActor`가 `PlayerState`가 아닌 상태에서 `Mixed` 복제 모드를 사용한다면, 유효한 `Controller`로 `OwnerActor`에 대해 `SetOwner()`를 호출해야 합니다.
 
-Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new `Controller`.
+4.24 버전부터, `PossessedBy()`는 이제 `Pawn`의 소유자를 새로운 `Controller`로 설정합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-asc-setup"></a>
 ### 4.1.2 Setup and Initialization
