@@ -1810,27 +1810,24 @@ AbilitySystemComponent->BindAbilityActivationToInputComponent(PlayerInputCompone
 하나의 입력으로만 활성화될 `GameplayAbilities`의 경우(MOBA처럼 항상 같은 "슬롯"에 존재할 것), `UGameplayAbility` 서브클래스에 입력을 정의할 수 있는 변수를 추가하는 것을 선호합니다. 그런 다음 능력을 부여할 때 `ClassDefaultObject`에서 이를 읽을 수 있습니다.
 
 <a name="concepts-ga-input-noactivate"></a>
-##### 4.6.2.1 Binding to Input without Activating Abilities
-If you don't want your `GameplayAbilities` to automatically activate when an input is pressed but still bind them to input to use with `AbilityTasks`, you can add a new bool variable to your `UGameplayAbility` subclass, `bActivateOnInput`, that defaults to `true` and override `UAbilitySystemComponent::AbilityLocalInputPressed()`.
+##### 4.6.2.1 어빌리티를 활성화하지 않고 입력에 바인딩하기
+입력이 눌렸을 때 `GameplayAbilities`가 자동으로 활성화되지 않게 하면서도 `AbilityTasks`와 함께 사용하기 위해 입력에 바인딩하려면, `UGameplayAbility` 서브클래스에 기본값이 `true`인 새로운 bool 변수 `bActivateOnInput`을 추가하고 `UAbilitySystemComponent::AbilityLocalInputPressed()`를 오버라이드할 수 있습니다.
 
 ```c++
 void UGSAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 {
-	// Consume the input if this InputID is overloaded with GenericConfirm/Cancel and the GenericConfim/Cancel callback is bound
+	// GenericConfirm/Cancel과 중복된 InputID이고 GenericConfim/Cancel 콜백이 바인딩된 경우 입력 소비
 	if (IsGenericConfirmInputBound(InputID))
 	{
 		LocalInputConfirm();
 		return;
 	}
-
 	if (IsGenericCancelInputBound(InputID))
 	{
 		LocalInputCancel();
 		return;
 	}
-
 	// ---------------------------------------------------------
-
 	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
@@ -1845,10 +1842,8 @@ void UGSAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 					{
 						ServerSetInputPressed(Spec.Handle);
 					}
-
 					AbilitySpecInputPressed(Spec);
-
-					// Invoke the InputPressed event. This is not replicated here. If someone is listening, they may replicate the InputPressed event to the server.
+					// InputPressed 이벤트 호출. 여기서 복제되지 않습니다. 누군가 수신 중이라면 InputPressed 이벤트를 서버로 복제할 수 있습니다.
 					InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, Spec.ActivationInfo.GetActivationPredictionKey());
 				}
 				else
@@ -1856,7 +1851,7 @@ void UGSAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 					UGSGameplayAbility* GA = Cast<UGSGameplayAbility>(Spec.Ability);
 					if (GA && GA->bActivateOnInput)
 					{
-						// Ability is not active, so try to activate it
+						// 어빌리티가 활성화되지 않았으므로 활성화 시도
 						TryActivateAbility(Spec.Handle);
 					}
 				}
@@ -1866,37 +1861,36 @@ void UGSAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 }
 ```
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-granting"></a>
-#### 4.6.3 Granting Abilities
-Granting a `GameplayAbility` to an `ASC` adds it to the `ASC's` list of `ActivatableAbilities` allowing it to activate the `GameplayAbility` at will if it meets the [`GameplayTag` requirements](#concepts-ga-tags).
+#### 4.6.3 어빌리티 부여
+`ASC`에 `GameplayAbility`를 부여하면 [`GameplayTag` 요구사항](#concepts-ga-tags)을 충족할 경우 언제든지 `GameplayAbility`를 활성화할 수 있도록 `ASC`의 `ActivatableAbilities` 목록에 추가됩니다.
 
-We grant `GameplayAbilities` on the server which then automatically replicates the [`GameplayAbilitySpec`](#concepts-ga-spec) to the owning client. Other clients / simulated proxies do not receive the `GameplayAbilitySpec`.
+우리는 서버에서 `GameplayAbilities`를 부여하며, 이는 자동으로 [`GameplayAbilitySpec`](#concepts-ga-spec)을 소유 클라이언트에게 복제합니다. 다른 클라이언트/시뮬레이션된 프록시는 `GameplayAbilitySpec`을 받지 않습니다.
 
-The Sample Project stores a `TArray<TSubclassOf<UGDGameplayAbility>>` on the `Character` class that it reads from and grants when the game starts:
+샘플 프로젝트는 `Character` 클래스에 `TArray<TSubclassOf<UGDGameplayAbility>>`를 저장하고 게임 시작 시 이를 읽고 부여합니다:
+
 ```c++
 void AGDCharacterBase::AddCharacterAbilities()
 {
-	// Grant abilities, but only on the server	
+	// 서버에서만 어빌리티 부여
 	if (Role != ROLE_Authority || !AbilitySystemComponent.IsValid() || AbilitySystemComponent->bCharacterAbilitiesGiven)
 	{
 		return;
 	}
-
 	for (TSubclassOf<UGDGameplayAbility>& StartupAbility : CharacterAbilities)
 	{
 		AbilitySystemComponent->GiveAbility(
 			FGameplayAbilitySpec(StartupAbility, GetAbilityLevel(StartupAbility.GetDefaultObject()->AbilityID), static_cast<int32>(StartupAbility.GetDefaultObject()->AbilityInputID), this));
 	}
-
 	AbilitySystemComponent->bCharacterAbilitiesGiven = true;
 }
 ```
 
-When granting these `GameplayAbilities`, we're creating `GameplayAbilitySpecs` with the `UGameplayAbility` class, the ability level, the input that it is bound to, and the `SourceObject` or who gave this `GameplayAbility` to this `ASC`.
+이러한 `GameplayAbilities`를 부여할 때, 우리는 `UGameplayAbility` 클래스, 어빌리티 레벨, 바인딩된 입력, 그리고 이 `GameplayAbility`를 이 `ASC`에 부여한 `SourceObject`로 `GameplayAbilitySpecs`를 생성하고 있습니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-activating"></a>
 #### 4.6.4 Activating Abilities
