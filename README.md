@@ -1385,14 +1385,14 @@ FScalableFloat Cost;
 **[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ge-cooldown"></a>
-#### 4.5.15 Cooldown Gameplay Effect
-[`GameplayAbilities`](#concepts-ga) have an optional `GameplayEffect` specifically designed to use as the cooldown of the ability. Cooldowns determine how long after activation the ability can be activated again. If a `GA` is still on cooldown, it cannot activate. This `Cooldown GE` should be a `Duration` `GameplayEffect` with no `Modifiers` and a unique `GameplayTag` per `GameplayAbility` or per ability slot (if your game has interchangeable abilities assigned to slots that share a cooldown) in the `GameplayEffect's` `GrantedTags` ("`Cooldown Tag`"). The `GA` actually checks for the presence of the `Cooldown Tag` instead of the presence of the `Cooldown GE`. By default, `Cooldown GEs` are meant to be predicted and it is recommended to maintain that capability meaning do not use `ExecutionCalculations`. `MMCs` are perfectly acceptable and encouraged for complex cooldown calculations.
+#### 4.5.15 쿨다운 게임플레이 이펙트
+[`GameplayAbilities`](#concepts-ga)는 능력의 쿨다운으로 사용하도록 특별히 설계된 선택적 `GameplayEffect`를 가집니다. 쿨다운은 능력 활성화 후 다시 활성화할 수 있는 시간을 결정합니다. `GA`가 여전히 쿨다운 중이라면 활성화할 수 없습니다. 이 `Cooldown GE`는 `Modifiers`가 없고 `GameplayEffect`의 `GrantedTags`("쿨다운 태그")에 `GameplayAbility`당 또는 능력 슬롯당(게임에 쿨다운을 공유하는 슬롯에 할당된 교체 가능한 능력이 있는 경우) 고유한 `GameplayTag`가 있는 `Duration` `GameplayEffect`여야 합니다. `GA`는 실제로 `Cooldown GE`의 존재 대신 `Cooldown Tag`의 존재를 확인합니다. 기본적으로 `Cooldown GEs`는 예측되도록 되어 있으며, 이 기능을 유지하는 것이 권장됩니다. 즉, `ExecutionCalculations`를 사용하지 않아야 합니다. 복잡한 쿨다운 계산을 위해 `MMC`를 사용하는 것은 완전히 허용되며 권장됩니다.
 
-When starting out, you will most likely have one unique `Cooldown GE` per `GA` that has a cooldown. A more advanced technique is to reuse one `Cooldown GE` for multiple `GAs` and just modify the `GameplayEffectSpec` created from the `Cooldown GE` with the `GA`-specific data (the cooldown duration and the `Cooldown Tag` are defined on the `GA`). **This only works for `Instanced` abilities.**
+시작할 때는 쿨다운이 있는 `GA`마다 고유한 `Cooldown GE`를 하나씩 가질 가능성이 높습니다. 더 고급 기술은 여러 `GA`에 대해 하나의 `Cooldown GE`를 재사용하고 `Cooldown GE`에서 생성된 `GameplayEffectSpec`을 `GA` 특정 데이터로 수정하는 것입니다(쿨다운 지속 시간과 `Cooldown Tag`는 `GA`에 정의됨). **이는 `Instanced` 능력에만 작동합니다.**
 
-Two techniques for reusing the `Cooldown GE`:
+`Cooldown GE`를 재사용하는 두 가지 기술:
 
-1. **Use a [`SetByCaller`](#concepts-ge-spec-setbycaller).** This is the easiest method. Set the duration of your shared `Cooldown GE` to `SetByCaller` with a `GameplayTag`. On your `GameplayAbility` subclass, define a float / `FScalableFloat` for the duration, a `FGameplayTagContainer` for the unique `Cooldown Tag`, and a temporary `FGameplayTagContainer` that we will use as the return pointer of the union of our `Cooldown Tag` and the `Cooldown GE's` tags.
+1. **[`SetByCaller`](#concepts-ge-spec-setbycaller) 사용.** 이는 가장 쉬운 방법입니다. 공유 `Cooldown GE`의 지속 시간을 `GameplayTag`와 함께 `SetByCaller`로 설정합니다. `GameplayAbility` 서브클래스에서 지속 시간에 대한 float / `FScalableFloat`, 고유한 `Cooldown Tag`에 대한 `FGameplayTagContainer`, 그리고 `Cooldown Tag`와 `Cooldown GE`의 태그의 합집합의 반환 포인터로 사용할 임시 `FGameplayTagContainer`를 정의합니다.
 ```c++
 UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
 FScalableFloat CooldownDuration;
@@ -1400,18 +1400,18 @@ FScalableFloat CooldownDuration;
 UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
 FGameplayTagContainer CooldownTags;
 
-// Temp container that we will return the pointer to in GetCooldownTags().
-// This will be a union of our CooldownTags and the Cooldown GE's cooldown tags.
+// GetCooldownTags()에서 포인터를 반환할 임시 컨테이너입니다.
+// 이는 우리의 CooldownTags와 Cooldown GE의 쿨다운 태그의 합집합이 될 것입니다.
 UPROPERTY(Transient)
 FGameplayTagContainer TempCooldownTags;
 ```
 
-Then override `UGameplayAbility::GetCooldownTags()` to return the union of our `Cooldown Tags` and any existing `Cooldown GE's` tags.
+그런 다음 `UGameplayAbility::GetCooldownTags()`를 오버라이드하여 `Cooldown Tags`와 기존 `Cooldown GE`의 태그의 합집합을 반환합니다.
 ```c++
 const FGameplayTagContainer * UPGGameplayAbility::GetCooldownTags() const
 {
 	FGameplayTagContainer* MutableTags = const_cast<FGameplayTagContainer*>(&TempCooldownTags);
-	MutableTags->Reset(); // MutableTags writes to the TempCooldownTags on the CDO so clear it in case the ability cooldown tags change (moved to a different slot)
+	MutableTags->Reset(); // MutableTags는 CDO의 TempCooldownTags에 쓰므로 능력 쿨다운 태그가 변경된 경우(다른 슬롯으로 이동) 이를 지웁니다
 	const FGameplayTagContainer* ParentTags = Super::GetCooldownTags();
 	if (ParentTags)
 	{
@@ -1422,7 +1422,7 @@ const FGameplayTagContainer * UPGGameplayAbility::GetCooldownTags() const
 }
 ```
 
-Finally, override `UGameplayAbility::ApplyCooldown()` to inject our `Cooldown Tags` and to add the `SetByCaller` to the cooldown `GameplayEffectSpec`.
+마지막으로, `UGameplayAbility::ApplyCooldown()`을 오버라이드하여 `Cooldown Tags`를 주입하고 쿨다운 `GameplayEffectSpec`에 `SetByCaller`를 추가합니다.
 ```c++
 void UPGGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo * ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
@@ -1437,11 +1437,11 @@ void UPGGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, 
 }
 ```
 
-In this picture, the cooldown's duration `Modifier` is set to `SetByCaller` with a `Data Tag` of `Data.Cooldown`. `Data.Cooldown` would be `OurSetByCallerTag` in the code above.
+이 그림에서 쿨다운의 지속 시간 `Modifier`는 `Data.Cooldown`이라는 `Data Tag`와 함께 `SetByCaller`로 설정됩니다. `Data.Cooldown`은 위 코드에서 `OurSetByCallerTag`가 될 것입니다.
 
-![Cooldown GE with SetByCaller](https://github.com/tranek/GASDocumentation/raw/master/Images/cooldownsbc.png)
+![SetByCaller가 있는 Cooldown GE](https://github.com/tranek/GASDocumentation/raw/master/Images/cooldownsbc.png)
 
-2. **Use an [`MMC`](#concepts-ge-mmc).** This has the same setup as above except for setting the `SetByCaller` as the duration on the `Cooldown GE` and in `ApplyCooldown`. Instead, set the duration to be a `Custom Calculation Class` and point to the new `MMC` that we will make.
+2. **[`MMC`](#concepts-ge-mmc) 사용.** 이는 `Cooldown GE`와 `ApplyCooldown`에서 지속 시간을 `SetByCaller`로 설정하는 것을 제외하고 위와 동일한 설정입니다. 대신, 지속 시간을 `Custom Calculation Class`로 설정하고 우리가 만들 새로운 `MMC`를 가리킵니다.
 ```c++
 UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
 FScalableFloat CooldownDuration;
@@ -1449,18 +1449,18 @@ FScalableFloat CooldownDuration;
 UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
 FGameplayTagContainer CooldownTags;
 
-// Temp container that we will return the pointer to in GetCooldownTags().
-// This will be a union of our CooldownTags and the Cooldown GE's cooldown tags.
+// GetCooldownTags()에서 포인터를 반환할 임시 컨테이너입니다.
+// 이는 우리의 CooldownTags와 Cooldown GE의 쿨다운 태그의 합집합이 될 것입니다.
 UPROPERTY(Transient)
 FGameplayTagContainer TempCooldownTags;
 ```
 
-Then override `UGameplayAbility::GetCooldownTags()` to return the union of our `Cooldown Tags` and any existing `Cooldown GE's` tags.
+그런 다음 `UGameplayAbility::GetCooldownTags()`를 오버라이드하여 `Cooldown Tags`와 기존 `Cooldown GE`의 태그의 합집합을 반환합니다.
 ```c++
 const FGameplayTagContainer * UPGGameplayAbility::GetCooldownTags() const
 {
 	FGameplayTagContainer* MutableTags = const_cast<FGameplayTagContainer*>(&TempCooldownTags);
-	MutableTags->Reset(); // MutableTags writes to the TempCooldownTags on the CDO so clear it in case the ability cooldown tags change (moved to a different slot)
+	MutableTags->Reset(); // MutableTags는 CDO의 TempCooldownTags에 쓰므로 능력 쿨다운 태그가 변경된 경우(다른 슬롯으로 이동) 이를 지웁니다
 	const FGameplayTagContainer* ParentTags = Super::GetCooldownTags();
 	if (ParentTags)
 	{
@@ -1471,7 +1471,7 @@ const FGameplayTagContainer * UPGGameplayAbility::GetCooldownTags() const
 }
 ```
 
-Finally, override `UGameplayAbility::ApplyCooldown()` to inject our `Cooldown Tags` into the cooldown `GameplayEffectSpec`.
+마지막으로, `UGameplayAbility::ApplyCooldown()`을 오버라이드하여 `Cooldown Tags`를 쿨다운 `GameplayEffectSpec`에 주입합니다.
 ```c++
 void UPGGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo * ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
@@ -1485,6 +1485,7 @@ void UPGGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, 
 }
 ```
 
+`MMC` 생성:
 ```c++
 float UPGMMC_HeroAbilityCooldown::CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec & Spec) const
 {
@@ -1499,12 +1500,14 @@ float UPGMMC_HeroAbilityCooldown::CalculateBaseMagnitude_Implementation(const FG
 }
 ```
 
-![Cooldown GE with MMC](https://github.com/tranek/GASDocumentation/raw/master/Images/cooldownmmc.png)
+이 그림에서 쿨다운의 지속 시간 `Modifier`는 새로운 `MMC`를 가리키는 `Custom Calculation Class`로 설정됩니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+![MMC가 있는 Cooldown GE](https://github.com/tranek/GASDocumentation/raw/master/Images/cooldownmmc.png)
+
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ge-cooldown-tr"></a>
-##### 4.5.15.1 Get the Cooldown Gameplay Effect's Remaining Time
+##### 4.5.15.1 쿨다운 게임플레이 이펙트의 남은 시간 가져오기
 ```c++
 bool APGPlayerState::GetCooldownRemainingForTag(FGameplayTagContainer CooldownTags, float & TimeRemaining, float & CooldownDuration)
 {
@@ -1539,36 +1542,36 @@ bool APGPlayerState::GetCooldownRemainingForTag(FGameplayTagContainer CooldownTa
 }
 ```
 
-**Note:** Querying the cooldown's time remaining on clients requires that they can receive replicated `GameplayEffects`. This will depend on their `ASC's` [replication mode](#concepts-asc-rm).
+**참고:** 클라이언트에서 쿨다운의 남은 시간을 쿼리하려면 복제된 `GameplayEffects`를 받을 수 있어야 합니다. 이는 `ASC`의 [복제 모드](#concepts-asc-rm)에 따라 달라집니다.
 
 <a name="concepts-ge-cooldown-listen"></a>
-##### 4.5.15.2 Listening for Cooldown Begin and End
-To listen for when a cooldown begins, you can either respond to when the `Cooldown GE` is applied by binding to `AbilitySystemComponent->OnActiveGameplayEffectAddedDelegateToSelf` or when the `Cooldown Tag` is added by binding to `AbilitySystemComponent->RegisterGameplayTagEvent(CooldownTag, EGameplayTagEventType::NewOrRemoved)`. I recommend listening for when the `Cooldown GE` is added because you also have access to the `GameplayEffectSpec` that applied it. From this you can determine if the `Cooldown GE` is the locally predicted one or the Server's correcting one.
+##### 4.5.15.2 쿨다운 시작과 종료 수신하기
+쿨다운이 시작될 때를 수신하려면 `AbilitySystemComponent->OnActiveGameplayEffectAddedDelegateToSelf`에 바인딩하여 `Cooldown GE`가 적용될 때 응답하거나 `AbilitySystemComponent->RegisterGameplayTagEvent(CooldownTag, EGameplayTagEventType::NewOrRemoved)`에 바인딩하여 `Cooldown Tag`가 추가될 때 응답할 수 있습니다. `Cooldown GE`가 추가될 때를 수신하는 것을 추천합니다. 이렇게 하면 적용된 `GameplayEffectSpec`에도 접근할 수 있기 때문입니다. 이를 통해 `Cooldown GE`가 로컬에서 예측된 것인지 서버의 수정된 것인지 판단할 수 있습니다.
 
-To listen for when a cooldown ends, you can either respond to when the `Cooldown GE` is removed by binding to `AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate()` or when the `Cooldown Tag` is removed by binding to `AbilitySystemComponent->RegisterGameplayTagEvent(CooldownTag, EGameplayTagEventType::NewOrRemoved)`. I recommend listening for when the `Cooldown Tag` is removed because when the Server's corrected `Cooldown GE` comes in, it will remove our locally predicted one causing the `OnAnyGameplayEffectRemovedDelegate()` to fire even though we're still on cooldown. The `Cooldown Tag` will not change during the removal of the predicted `Cooldown GE` and the application of the Server's corrected `Cooldown GE`.
+쿨다운이 종료될 때를 수신하려면 `AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate()`에 바인딩하여 `Cooldown GE`가 제거될 때 응답하거나 `AbilitySystemComponent->RegisterGameplayTagEvent(CooldownTag, EGameplayTagEventType::NewOrRemoved)`에 바인딩하여 `Cooldown Tag`가 제거될 때 응답할 수 있습니다. `Cooldown Tag`가 제거될 때를 수신하는 것을 추천합니다. 서버의 수정된 `Cooldown GE`가 들어오면 우리의 로컬에서 예측된 것을 제거하여 여전히 쿨다운 중임에도 불구하고 `OnAnyGameplayEffectRemovedDelegate()`가 발생하기 때문입니다. 예측된 `Cooldown GE`의 제거와 서버의 수정된 `Cooldown GE`의 적용 동안 `Cooldown Tag`는 변경되지 않을 것입니다.
 
-**Note:** Listening for a `GameplayEffect` to be added or removed on clients requires that they can receive replicated `GameplayEffects`. This will depend on their `ASC's` [replication mode](#concepts-asc-rm).
+**참고:** 클라이언트에서 `GameplayEffect`가 추가되거나 제거되는 것을 수신하려면 복제된 `GameplayEffects`를 받을 수 있어야 합니다. 이는 `ASC`의 [복제 모드](#concepts-asc-rm)에 따라 달라집니다.
 
-The Sample Project includes a custom Blueprint node that listens for cooldowns beginning and ending. The HUD UMG Widget uses it to update the amount of time remaining on the Meteor's cooldown. This `AsyncTask` will live forever until manually called `EndTask()`, which we do in the UMG Widget's `Destruct` event. See [`AsyncTaskCooldownChanged.h/cpp`](Source/GASDocumentation/Private/Characters/Abilities/AsyncTaskCooldownChanged.cpp).
+샘플 프로젝트에는 쿨다운의 시작과 종료를 수신하는 사용자 정의 블루프린트 노드가 포함되어 있습니다. HUD UMG 위젯은 이를 사용하여 Meteor의 쿨다운 남은 시간을 업데이트합니다. 이 `AsyncTask`는 수동으로 `EndTask()`가 호출될 때까지 영원히 살아있을 것이며, 우리는 UMG 위젯의 `Destruct` 이벤트에서 이를 수행합니다. [`AsyncTaskCooldownChanged.h/cpp`](Source/GASDocumentation/Private/Characters/Abilities/AsyncTaskCooldownChanged.cpp)를 참조하세요.
 
-![Listen for Cooldown Change BP Node](https://github.com/tranek/GASDocumentation/raw/master/Images/cooldownchange.png)
+![쿨다운 변경 수신 BP 노드](https://github.com/tranek/GASDocumentation/raw/master/Images/cooldownchange.png)
 
 <a name="concepts-ge-cooldown-prediction"></a>
-##### 4.5.15.3 Predicting Cooldowns
-Cooldowns cannot really be predicted currently. We can start UI cooldown timer's when the locally predicted `Cooldown GE` is applied but the `GameplayAbility's` actual cooldown is tied to the server's cooldown's time remaining. Depending on the player's latency, the locally predicted cooldown could expire but the `GameplayAbility` would still be on cooldown on the server and this would prevent the `GameplayAbility's` immediate re-activation until the server's cooldown expires.
+##### 4.5.15.3 쿨다운 예측
+현재 쿨다운을 실제로 예측할 수는 없습니다. 로컬에서 예측된 `Cooldown GE`가 적용될 때 UI 쿨다운 타이머를 시작할 수 있지만 `GameplayAbility`의 실제 쿨다운은 서버의 쿨다운 남은 시간과 연결되어 있습니다. 플레이어의 지연 시간에 따라 로컬에서 예측된 쿨다운이 만료되었지만 서버에서는 여전히 `GameplayAbility`가 쿨다운 중일 수 있으며, 이는 서버의 쿨다운이 만료될 때까지 `GameplayAbility`의 즉시 재활성화를 방지할 것입니다.
 
-The Sample Project handles this by graying out the Meteor ability's UI icon when the locally predicted cooldown begins and then starting the cooldown timer once the server's corrected `Cooldown GE` comes in.
+샘플 프로젝트는 로컬에서 예측된 쿨다운이 시작될 때 Meteor 능력의 UI 아이콘을 회색으로 처리하고 서버의 수정된 `Cooldown GE`가 들어오면 쿨다운 타이머를 시작하는 방식으로 이를 처리합니다.
 
-A gameplay consequence of this is that players with high latencies have a lower rate of fire on short cooldown abilities than players with lower latencies putting them at a disadvantage. Fortnite avoids this by their weapons having custom bookkeeping that do not use cooldown `GameplayEffects`.
+이의 게임플레이 결과로, 높은 지연 시간을 가진 플레이어들은 낮은 지연 시간을 가진 플레이어들보다 짧은 쿨다운 능력의 발사 속도가 낮아져 불이익을 받게 됩니다. Fortnite는 무기에 쿨다운 `GameplayEffects`를 사용하지 않는 사용자 정의 북키핑을 사용하여 이를 피합니다.
 
-Allowing for true predicted cooldowns (player could activate a `GameplayAbility` when the local cooldown expires but the server is still on cooldown) is something that Epic would like to implement someday in a [future iteration of GAS](#concepts-p-future).
+진정한 예측 쿨다운(로컬 쿨다운이 만료되었지만 서버가 여전히 쿨다운 중일 때 플레이어가 `GameplayAbility`를 활성화할 수 있음)을 허용하는 것은 Epic이 [GAS의 미래 반복](#concepts-p-future)에서 언젠가 구현하고 싶어하는 것입니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ge-duration"></a>
-#### 4.5.16 Changing Active Gameplay Effect Duration
-To change the time remaining for a `Cooldown GE` or any `Duration` `GameplayEffect`, we need to change the `GameplayEffectSpec's` `Duration`, update its `StartServerWorldTime`, update its `CachedStartServerWorldTime`, update its `StartWorldTime`, and rerun the check on the duration with `CheckDuration()`. Doing this on the server and marking the `FActiveGameplayEffect` dirty will replicate the changes to clients.
-**Note:** This does involve a `const_cast` and may not be Epic's intended way of changing durations, but it seems to work well so far.
+#### 4.5.16 활성 게임플레이 이펙트 지속 시간 변경
+`Cooldown GE` 또는 모든 `Duration` `GameplayEffect`의 남은 시간을 변경하려면 `GameplayEffectSpec`의 `Duration`을 변경하고, `StartServerWorldTime`을 업데이트하고, `CachedStartServerWorldTime`을 업데이트하고, `StartWorldTime`을 업데이트한 다음 `CheckDuration()`으로 지속 시간 검사를 다시 실행해야 합니다. 서버에서 이를 수행하고 `FActiveGameplayEffect`를 더티로 표시하면 변경 사항이 클라이언트에 복제됩니다.
+**참고:** 이는 `const_cast`를 포함하며 Epic이 의도한 지속 시간 변경 방법이 아닐 수 있지만, 지금까지는 잘 작동하는 것 같습니다.
 
 ```c++
 bool UPAAbilitySystemComponent::SetGameplayEffectDurationHandle(FActiveGameplayEffectHandle Handle, float NewDuration)
@@ -1607,22 +1610,22 @@ bool UPAAbilitySystemComponent::SetGameplayEffectDurationHandle(FActiveGameplayE
 }
 ```
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ge-dynamic"></a>
-#### 4.5.17 Creating Dynamic Gameplay Effects at Runtime
-Creating Dynamic `GameplayEffects` at runtime is an advanced topic. You shouldn't have to do this too often.
+#### 4.5.17 런타임에 동적 게임플레이 이펙트 생성
+런타임에 동적 `GameplayEffects`를 생성하는 것은 고급 주제입니다. 이를 너무 자주 할 필요는 없습니다.
 
-Only `Instant` `GameplayEffects` can be created at runtime from scratch in C++. `Duration` and `Infinite` `GameplayEffects` cannot be created dynamically at runtime because when they replicate they look for the `GameplayEffect` class definition that does not exist. To achieve this functionality, you should instead make an archetype `GameplayEffect` class like you would normally do in the Editor. Then customize the `GameplayEffectSpec` instance with what you need at runtime.
+C++에서 처음부터 런타임에 생성할 수 있는 것은 `Instant` `GameplayEffects`뿐입니다. `Duration`과 `Infinite` `GameplayEffects`는 복제될 때 존재하지 않는 `GameplayEffect` 클래스 정의를 찾기 때문에 런타임에 동적으로 생성할 수 없습니다. 이 기능을 달성하려면 대신 일반적으로 에디터에서 하는 것처럼 원형 `GameplayEffect` 클래스를 만들어야 합니다. 그런 다음 런타임에 필요한 대로 `GameplayEffectSpec` 인스턴스를 사용자 정의합니다.
 
-`Instant` `GameplayEffects` created at runtime can also be called from within a [local predicted](#concepts-p) `GameplayAbility`. However, it is unknown yet if the dynamic creation can have side effects.
+런타임에 생성된 `Instant` `GameplayEffects`는 [로컬 예측](#concepts-p) `GameplayAbility` 내에서도 호출될 수 있습니다. 그러나 동적 생성이 부작용을 가질 수 있는지는 아직 알려지지 않았습니다.
 
-##### Examples
+##### 예시
 
-The Sample Project creates one to send the gold and experience points back to the killer of a character when it takes the killing blow in its `AttributeSet`.
+샘플 프로젝트는 `AttributeSet`에서 캐릭터가 치명타를 입을 때 킬러에게 금과 경험치를 돌려보내기 위해 하나를 생성합니다.
 
 ```c++
-// Create a dynamic instant Gameplay Effect to give the bounties
+// 보상을 주기 위한 동적 즉시 Gameplay Effect 생성
 UGameplayEffect* GEBounty = NewObject<UGameplayEffect>(GetTransientPackage(), FName(TEXT("Bounty")));
 GEBounty->DurationPolicy = EGameplayEffectDurationType::Instant;
 
@@ -1642,7 +1645,7 @@ InfoGold.Attribute = UGDAttributeSetBase::GetGoldAttribute();
 Source->ApplyGameplayEffectToSelf(GEBounty, 1.0f, Source->MakeEffectContext());
 ```
 
-A second example shows a runtime `GameplayEffect` created within a local predicted `GameplayAbility`. Use at your own risk (see comments in code)!
+두 번째 예시는 로컬 예측 `GameplayAbility` 내에서 생성된 런타임 `GameplayEffect`를 보여줍니다. 자신의 책임 하에 사용하세요 (코드의 주석 참조)!
 
 ```c++
 UGameplayAbilityRuntimeGE::UGameplayAbilityRuntimeGE()
@@ -1659,12 +1662,12 @@ void UGameplayAbilityRuntimeGE::ActivateAbility(const FGameplayAbilitySpecHandle
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		}
 
-		// Create the GE at runtime.
+		// 런타임에 GE 생성.
 		UGameplayEffect* GameplayEffect = NewObject<UGameplayEffect>(GetTransientPackage(), TEXT("RuntimeInstantGE"));
-		GameplayEffect->DurationPolicy = EGameplayEffectDurationType::Instant; // Only instant works with runtime GE.
+		GameplayEffect->DurationPolicy = EGameplayEffectDurationType::Instant; // 런타임 GE에서는 즉시만 작동합니다.
 
-		// Add a simple scalable float modifier, which overrides MyAttribute with 42.
-		// In real world applications, consume information passed via TriggerEventData.
+		// MyAttribute를 42로 덮어쓰는 간단한 확장 가능한 float 수정자 추가.
+		// 실제 응용 프로그램에서는 TriggerEventData를 통해 전달된 정보를 사용합니다.
 		const int32 Idx = GameplayEffect->Modifiers.Num();
 		GameplayEffect->Modifiers.SetNum(Idx + 1);
 		FGameplayModifierInfo& ModifierInfo = GameplayEffect->Modifiers[Idx];
@@ -1672,100 +1675,99 @@ void UGameplayAbilityRuntimeGE::ActivateAbility(const FGameplayAbilitySpecHandle
 		ModifierInfo.ModifierMagnitude = FScalableFloat(42.f);
 		ModifierInfo.ModifierOp = EGameplayModOp::Override;
 
-		// Apply the GE.
+		// GE 적용.
 
-		// Create the GESpec here to avoid the behavior of ASC to create GESpecs from the GE class default object.
-		// Since we have a dynamic GE here, this would create a GESpec with the base GameplayEffect class, so we
-		// would lose our modifiers. Attention: It is unknown, if this "hack" done here can have drawbacks!
-		// The spec prevents the GE object being collected by the GarbageCollector, since the GE is a UPROPERTY on the spec.
-		FGameplayEffectSpec* GESpec = new FGameplayEffectSpec(GameplayEffect, {}, 0.f); // "new", since lifetime is managed by a shared ptr within the handle
+		// ASC가 GE 클래스 기본 객체에서 GESpec을 생성하는 동작을 피하기 위해 여기서 GESpec을 생성합니다.
+		// 여기에 동적 GE가 있으므로 기본 GameplayEffect 클래스로 GESpec을 생성하여 수정자를 잃게 됩니다.
+		// 주의: 여기서 수행된 이 "해킹"이 단점을 가질 수 있는지는 알려지지 않았습니다!
+		// 스펙은 GE가 스펙의 UPROPERTY이므로 GE 객체가 GarbageCollector에 의해 수집되는 것을 방지합니다.
+		FGameplayEffectSpec* GESpec = new FGameplayEffectSpec(GameplayEffect, {}, 0.f); // "new"는 핸들 내의 공유 포인터에 의해 수명이 관리되기 때문입니다
 		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, FGameplayEffectSpecHandle(GESpec));
 	}
 	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }
 ```
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ge-containers"></a>
-#### 4.5.18 Gameplay Effect Containers
-Epic's [Action RPG Sample Project](https://www.unrealengine.com/marketplace/en-US/product/action-rpg) implements a structure called `FGameplayEffectContainer`. These are not in vanilla GAS but are extremely handy for containing `GameplayEffects` and [`TargetData`](#concepts-targeting-data). It automates some of the effort like creating `GameplayEffectSpecs` from `GameplayEffects` and setting default values in its `GameplayEffectContext`. Making a `GameplayEffectContainer` in a `GameplayAbility` and passing it to spawned projectiles is very easy and straightforward. I opted not to implement the `GameplayEffectContainers` in the included Sample Project to show how you would work without them in vanilla GAS, but I highly recommend looking into them and considering adding them to your project.
+#### 4.5.18 게임플레이 이펙트 컨테이너
+Epic의 [Action RPG 샘플 프로젝트](https://www.unrealengine.com/marketplace/en-US/product/action-rpg)는 `FGameplayEffectContainer`라는 구조체를 구현합니다. 이들은 바닐라 GAS에는 없지만 `GameplayEffects`와 [`TargetData`](#concepts-targeting-data)를 포함하는 데 매우 유용합니다. `GameplayEffects`에서 `GameplayEffectSpecs`를 생성하고 `GameplayEffectContext`에 기본값을 설정하는 등의 일부 노력을 자동화합니다. `GameplayAbility`에서 `GameplayEffectContainer`를 만들고 이를 스폰된 발사체에 전달하는 것은 매우 쉽고 간단합니다. 포함된 샘플 프로젝트에서는 바닐라 GAS에서 어떻게 작업할 것인지 보여주기 위해 `GameplayEffectContainers`를 구현하지 않기로 했지만, 이들을 살펴보고 프로젝트에 추가하는 것을 고려해 보는 것이 좋습니다.
 
-To access the `GESpecs` inside of the `GameplayEffectContainers` to do things like adding `SetByCallers`, break the `FGameplayEffectContainer` and access the `GESpec` reference by its index in the array of `GESpecs`. This requires that you know the index ahead of time of the `GESpec` that you want to access.
+`SetByCallers`를 추가하는 등의 작업을 위해 `GameplayEffectContainers` 내의 `GESpecs`에 접근하려면 `FGameplayEffectContainer`를 분해하고 `GESpecs` 배열의 인덱스로 `GESpec` 참조에 접근하세요. 이는 접근하려는 `GESpec`의 인덱스를 미리 알고 있어야 합니다.
 
-![SetByCaller with a GameplayEffectContainer](https://github.com/tranek/GASDocumentation/raw/master/Images/gecontainersetbycaller.png)
+![GameplayEffectContainer와 함께 SetByCaller 사용](https://github.com/tranek/GASDocumentation/raw/master/Images/gecontainersetbycaller.png)
 
-`GameplayEffectContainers` also contain an optional efficient means of [targeting](#concepts-targeting-containers).
+`GameplayEffectContainers`는 또한 [타겟팅](#concepts-targeting-containers)을 위한 선택적이고 효율적인 수단을 포함합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga"></a>
-### 4.6 Gameplay Abilities
+### 4.6 게임플레이 어빌리티
 
 <a name="concepts-ga-definition"></a>
-#### 4.6.1 Gameplay Ability Definition
-[`GameplayAbilities`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/UGameplayAbility/index.html) (`GA`) are any actions or skills that an `Actor` can do in the game. More than one `GameplayAbility` can be active at one time for example sprinting and shooting a gun. These can be made in Blueprint or C++.
+#### 4.6.1 게임플레이 어빌리티 정의
+[`GameplayAbilities`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/UGameplayAbility/index.html) (`GA`)는 게임에서 `Actor`가 수행할 수 있는 모든 행동이나 기술입니다. 예를 들어 달리기와 총 쏘기와 같이 한 번에 둘 이상의 `GameplayAbility`가 활성화될 수 있습니다. 이들은 블루프린트나 C++로 만들 수 있습니다.
 
-Examples of `GameplayAbilities`:
-* Jumping
-* Sprinting
-* Shooting a gun
-* Passively blocking an attack every X number of seconds
-* Using a potion
-* Opening a door
-* Collecting a resource
-* Constructing a building
+`GameplayAbilities`의 예:
+* 점프
+* 달리기
+* 총 쏘기
+* X초마다 공격을 수동적으로 막기
+* 포션 사용
+* 문 열기
+* 자원 수집
+* 건물 건설
 
-Things that should not be implemented with `GameplayAbilities`:
-* Basic movement input
-* Some interactions with UIs - Don't use a `GameplayAbility` to purchase an item from a store.
+`GameplayAbilities`로 구현하지 않아야 할 것들:
+* 기본 이동 입력
+* UI와의 일부 상호작용 - 상점에서 아이템을 구매하는 데 `GameplayAbility`를 사용하지 마세요.
 
-These are not rules, just my recommendations. Your design and implementations may vary.
+이들은 규칙이 아니라 단지 제 추천사항입니다. 여러분의 설계와 구현은 다를 수 있습니다.
 
-`GameplayAbilities` come with default functionality to have a level to modify the amount of change to attributes or to change the `GameplayAbility's` functionality.
+`GameplayAbilities`는 어트리뷰트 변경량을 수정하거나 `GameplayAbility`의 기능을 변경하기 위한 레벨을 갖는 기본 기능을 제공합니다.
 
-`GameplayAbilities` run on the owning client and/or the server depending on the [`Net Execution Policy`](#concepts-ga-net) but not simulated proxies. The `Net Execution Policy` determines if a `GameplayAbility` will be locally [predicted](#concepts-p). They include default behavior for [optional cost and cooldown `GameplayEffects`](#concepts-ga-commit). `GameplayAbilities` use [`AbilityTasks`](#concepts-at) for actions that happen over time like waiting for an event, waiting for an attribute change, waiting for players to choose a target, or moving a `Character` with `Root Motion Source`. **Simulated clients will not run `GameplayAbilities`**. Instead, when the server runs the ability, anything that visually needs to play on the simulated proxies (like animation montages) will be replicated or RPC'd through `AbilityTasks` or [`GameplayCues`](#concepts-gc) for cosmetic things like sounds and particles.
+`GameplayAbilities`는 [`Net Execution Policy`](#concepts-ga-net)에 따라 소유 클라이언트 및/또는 서버에서 실행되지만 시뮬레이션된 프록시에서는 실행되지 않습니다. `Net Execution Policy`는 `GameplayAbility`가 로컬에서 [예측](#concepts-p)될지 여부를 결정합니다. 이들은 [선택적 비용과 쿨다운 `GameplayEffects`](#concepts-ga-commit)에 대한 기본 동작을 포함합니다. `GameplayAbilities`는 이벤트 대기, 어트리뷰트 변경 대기, 플레이어가 타겟을 선택하기를 기다리거나 `Root Motion Source`로 `Character`를 이동시키는 것과 같이 시간이 지남에 따라 발생하는 작업에 [`AbilityTasks`](#concepts-at)를 사용합니다. **시뮬레이션된 클라이언트는 `GameplayAbilities`를 실행하지 않습니다**. 대신, 서버가 능력을 실행할 때 시뮬레이션된 프록시에서 시각적으로 재생되어야 하는 모든 것(애니메이션 몽타주 등)은 `AbilityTasks`나 사운드와 파티클 같은 시각적 요소를 위한 [`GameplayCues`](#concepts-gc)를 통해 복제되거나 RPC될 것입니다.
 
-All `GameplayAbilities` will have their `ActivateAbility()` function overriden with your gameplay logic. Additional logic can be added to `EndAbility()` that runs when the `GameplayAbility` completes or is canceled.
+모든 `GameplayAbilities`는 게임플레이 로직으로 `ActivateAbility()` 함수를 오버라이드할 것입니다. `GameplayAbility`가 완료되거나 취소될 때 실행되는 추가 로직을 `EndAbility()`에 추가할 수 있습니다.
 
-Flowchart of a simple `GameplayAbility`:
-![Simple GameplayAbility Flowchart](https://github.com/tranek/GASDocumentation/raw/master/Images/abilityflowchartsimple.png)
+간단한 `GameplayAbility`의 흐름도:
+![간단한 GameplayAbility 흐름도](https://github.com/tranek/GASDocumentation/raw/master/Images/abilityflowchartsimple.png)
 
+더 복잡한 `GameplayAbility`의 흐름도:
+![복잡한 GameplayAbility 흐름도](https://github.com/tranek/GASDocumentation/raw/master/Images/abilityflowchartcomplex.png)
 
-Flowchart of a more complex `GameplayAbility`:
-![Complex GameplayAbility Flowchart](https://github.com/tranek/GASDocumentation/raw/master/Images/abilityflowchartcomplex.png)
-
-Complex abilities can be implemented using multiple `GameplayAbilities` that interact (activate, cancel, etc) with each other.
+복잡한 능력은 서로 상호작용하는(활성화, 취소 등) 여러 `GameplayAbilities`를 사용하여 구현할 수 있습니다.
 
 <a name="concepts-ga-definition-reppolicy"></a>
-##### 4.6.1.1 Replication Policy
-Don't use this option. The name is misleading and you don't need it. [`GameplayAbilitySpecs`](#concepts-ga-spec) are replicated from the server to the owning client by default. As mentioned above, **`GameplayAbilities` don't run on simulated proxies**. They use `AbilityTasks` and `GameplayCues` to replicate or RPC visual changes to the simulated proxies. Dave Ratti from Epic has stated his desire to [remove this option in the future](https://epicgames.ent.box.com/s/m1egifkxv3he3u3xezb9hzbgroxyhx89).
+##### 4.6.1.1 복제 정책
+이 옵션을 사용하지 마세요. 이름이 오해의 소지가 있고 필요하지 않습니다. [`GameplayAbilitySpecs`](#concepts-ga-spec)는 기본적으로 서버에서 소유 클라이언트로 복제됩니다. 위에서 언급했듯이, **`GameplayAbilities`는 시뮬레이션된 프록시에서 실행되지 않습니다**. 그들은 `AbilityTasks`와 `GameplayCues`를 사용하여 시뮬레이션된 프록시에 시각적 변화를 복제하거나 RPC합니다. Epic의 Dave Ratti는 [미래에 이 옵션을 제거하고 싶다고 말했습니다](https://epicgames.ent.box.com/s/m1egifkxv3he3u3xezb9hzbgroxyhx89).
 
 <a name="concepts-ga-definition-remotecancel"></a>
-##### 4.6.1.2 Server Respects Remote Ability Cancellation
-This option causes trouble more often than not. It means if the client's `GameplayAbility` ends either due to cancellation or natural completion, it will force the server's version to end whether it completed or not. The latter issue is the important one, especially for locally predicted `GameplayAbilities` used by players with high latencies. Generally you will want to disable this option.
+##### 4.6.1.2 서버가 원격 어빌리티 취소를 존중함
+이 옵션은 문제를 더 자주 일으킵니다. 클라이언트의 `GameplayAbility`가 취소되거나 자연스럽게 완료되어 종료되면 서버의 버전이 완료되었는지 여부에 관계없이 강제로 종료된다는 의미입니다. 후자의 문제가 중요한데, 특히 높은 지연 시간을 가진 플레이어가 사용하는 로컬에서 예측된 `GameplayAbilities`의 경우 그렇습니다. 일반적으로 이 옵션을 비활성화하는 것이 좋습니다.
 
 <a name="concepts-ga-definition-repinputdirectly"></a>
-##### 4.6.1.3 Replicate Input Directly
-Setting this option will always replicate input press and release events to the server. Epic recommends not using this and instead relying on the `Generic Replicated Events` that are built into the existing input related [`AbilityTasks`](#concepts-at) if you have your [input bound to your `ASC`](#concepts-ga-input).
+##### 4.6.1.3 입력 직접 복제
+이 옵션을 설정하면 입력 누름 및 해제 이벤트가 항상 서버로 복제됩니다. Epic은 이를 사용하지 않고 대신 [입력을 `ASC`에 바인딩](#concepts-ga-input)한 경우 기존의 입력 관련 [`AbilityTasks`](#concepts-at)에 내장된 `Generic Replicated Events`를 사용하는 것을 권장합니다.
 
-Epic's comment:
+Epic의 주석:
 ```c++
-/** Direct Input state replication. These will be called if bReplicateInputDirectly is true on the ability and is generally not a good thing to use. (Instead, prefer to use Generic Replicated Events). */
+/** 직접 입력 상태 복제. 능력에서 bReplicateInputDirectly가 true로 설정된 경우 이들이 호출되며 일반적으로 사용하는 것이 좋지 않습니다. (대신 Generic Replicated Events를 사용하는 것이 좋습니다). */
 UAbilitySystemComponent::ServerSetInputPressed()
 ```
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-input"></a>
-#### 4.6.2 Binding Input to the ASC
-The `ASC` allows you to directly bind input actions to it and assign those inputs to `GameplayAbilities` when you grant them. Input actions assigned to `GameplayAbilities` automatically activate those `GameplayAbilities` when pressed if the `GameplayTag` requirements are met. Assigned input actions are required to use the built-in `AbilityTasks` that respond to input.
+#### 4.6.2 ASC에 입력 바인딩
+`ASC`는 입력 액션을 직접 바인딩하고 `GameplayAbilities`를 부여할 때 이러한 입력을 할당할 수 있습니다. `GameplayAbilities`에 할당된 입력 액션은 `GameplayTag` 요구사항이 충족되면 누를 때 자동으로 해당 `GameplayAbilities`를 활성화합니다. 할당된 입력 액션은 입력에 응답하는 내장 `AbilityTasks`를 사용하는 데 필요합니다.
 
-In addition to input actions assigned to activate `GameplayAbilities`, the `ASC` also accepts generic `Confirm` and `Cancel` inputs. These special inputs are used by `AbilityTasks` for confirming things like [`Target Actors`](#concepts-targeting-actors) or canceling them.
+`GameplayAbilities`를 활성화하도록 할당된 입력 액션 외에도 `ASC`는 일반 `Confirm` 및 `Cancel` 입력도 받아들입니다. 이러한 특별한 입력은 [`Target Actors`](#concepts-targeting-actors)를 확인하거나 취소하는 등의 작업에 `AbilityTasks`에서 사용됩니다.
 
-To bind input to an `ASC`, you must first create an enum that translates the input action name to a byte. The enum name must match exactly to the name used for the input action in the project settings. The `DisplayName` does not matter.
+`ASC`에 입력을 바인딩하려면 먼저 입력 액션 이름을 바이트로 변환하는 열거형을 만들어야 합니다. 열거형 이름은 프로젝트 설정의 입력 액션 이름과 정확히 일치해야 합니다. `DisplayName`은 중요하지 않습니다.
 
-From the Sample Project:
+샘플 프로젝트에서:
 ```c++
 UENUM(BlueprintType)
 enum class EGDAbilityInputID : uint8
@@ -1793,19 +1795,19 @@ enum class EGDAbilityInputID : uint8
 };
 ```
 
-If your `ASC` lives on the `Character`, then in `SetupPlayerInputComponent()` include the function for binding to the `ASC`:
+`ASC`가 `Character`에 있는 경우, `SetupPlayerInputComponent()`에 `ASC`에 바인딩하는 함수를 포함하세요:
 ```c++
-// Bind to AbilitySystemComponent
+// AbilitySystemComponent에 바인딩
 FTopLevelAssetPath AbilityEnumAssetPath = FTopLevelAssetPath(FName("/Script/GASDocumentation"), FName("EGDAbilityInputID"));
 AbilitySystemComponent->BindAbilityActivationToInputComponent(PlayerInputComponent, FGameplayAbilityInputBinds(FString("ConfirmTarget"),
 	FString("CancelTarget"), AbilityEnumAssetPath, static_cast<int32>(EGDAbilityInputID::Confirm), static_cast<int32>(EGDAbilityInputID::Cancel)));
 ```
 
-If your `ASC` lives on the `PlayerState`, there is a potential race condition inside of `SetupPlayerInputComponent()` where the `PlayerState` may not have replicated to the client yet. Therefore, I recommend attempting to bind to input in `SetupPlayerInputComponent()` and `OnRep_PlayerState()`. `OnRep_PlayerState()` is not sufficient by itself because there could be a case where the `Actor's` `InputComponent` could be null when `PlayerState` replicates before the `PlayerController` tells the client to call `ClientRestart()` which creates the `InputComponent`. The Sample Project demonstrates attempting to bind in both locations with a boolean gating the process so it only actually binds the input once.
+`ASC`가 `PlayerState`에 있는 경우, `SetupPlayerInputComponent()` 내에서 `PlayerState`가 아직 클라이언트에 복제되지 않았을 수 있는 잠재적인 경쟁 조건이 있습니다. 따라서 `SetupPlayerInputComponent()`와 `OnRep_PlayerState()`에서 입력에 바인딩을 시도하는 것을 추천합니다. `OnRep_PlayerState()`만으로는 충분하지 않습니다. `PlayerController`가 클라이언트에게 `ClientRestart()`를 호출하도록 지시하기 전에 `PlayerState`가 복제되어 `InputComponent`를 생성하는 경우가 있을 수 있기 때문입니다. 샘플 프로젝트는 두 위치에서 바인딩을 시도하는 것을 보여주며, 불리언을 사용하여 프로세스를 제어하여 실제로 한 번만 입력을 바인딩합니다.
 
-**Note:** In the Sample Project `Confirm` and `Cancel` in the enum don't match the input action names in the project settings (`ConfirmTarget` and `CancelTarget`), but we supply the mapping between them in `BindAbilityActivationToInputComponent()`. These are special since we supply the mapping and they don't have to match, but they can match. All other inputs in the enum must match the input action names in the project settings.
+**참고:** 샘플 프로젝트에서 열거형의 `Confirm`과 `Cancel`은 프로젝트 설정의 입력 액션 이름(`ConfirmTarget`과 `CancelTarget`)과 일치하지 않지만, `BindAbilityActivationToInputComponent()`에서 그들 사이의 매핑을 제공합니다. 이들은 특별한 경우이며 매핑을 제공하므로 일치할 필요가 없지만 일치할 수 있습니다. 열거형의 다른 모든 입력은 프로젝트 설정의 입력 액션 이름과 일치해야 합니다.
 
-For `GameplayAbilities` that will only ever be activated by one input (they will always exist in the same "slot" like a MOBA), I prefer to add a variable to my `UGameplayAbility` subclass where I can define their input. I can then read this from the `ClassDefaultObject` when granting the ability.
+하나의 입력으로만 활성화될 `GameplayAbilities`의 경우(MOBA처럼 항상 같은 "슬롯"에 존재할 것), `UGameplayAbility` 서브클래스에 입력을 정의할 수 있는 변수를 추가하는 것을 선호합니다. 그런 다음 능력을 부여할 때 `ClassDefaultObject`에서 이를 읽을 수 있습니다.
 
 <a name="concepts-ga-input-noactivate"></a>
 ##### 4.6.2.1 Binding to Input without Activating Abilities
