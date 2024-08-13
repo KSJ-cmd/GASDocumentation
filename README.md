@@ -1893,8 +1893,8 @@ void AGDCharacterBase::AddCharacterAbilities()
 **[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-activating"></a>
-#### 4.6.4 Activating Abilities
-If a `GameplayAbility` is assigned an input action, it will be automatically activated if the input is pressed and it meets its `GameplayTag` requirements. This may not always be the desirable way to activate a `GameplayAbility`. The `ASC` provides four other methods of activating `GameplayAbilities`: by `GameplayTag`, `GameplayAbility` class, `GameplayAbilitySpec` handle, and by an event. Activating a `GameplayAbility` by event allows you to [pass in a payload of data with the event](#concepts-ga-data).
+#### 4.6.4 어빌리티 활성화
+`GameplayAbility`에 입력 액션이 할당되면, 입력이 눌리고 `GameplayTag` 요구사항을 충족하면 자동으로 활성화됩니다. 하지만 이것이 항상 `GameplayAbility`를 활성화하는 바람직한 방법은 아닐 수 있습니다. `ASC`는 `GameplayAbilities`를 활성화하는 다른 네 가지 방법을 제공합니다: `GameplayTag`로, `GameplayAbility` 클래스로, `GameplayAbilitySpec` 핸들로, 그리고 이벤트로. 이벤트로 `GameplayAbility`를 활성화하면 [이벤트와 함께 데이터 페이로드를 전달](#concepts-ga-data)할 수 있습니다.
 
 ```c++
 UFUNCTION(BlueprintCallable, Category = "Abilities")
@@ -1909,42 +1909,43 @@ bool TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle AbilityToTrigger
 
 FGameplayAbilitySpecHandle GiveAbilityAndActivateOnce(const FGameplayAbilitySpec& AbilitySpec, const FGameplayEventData* GameplayEventData);
 ```
-To activate a `GameplayAbility` by event, the `GameplayAbility` must have its `Triggers` set up in the `GameplayAbility`. Assign a `GameplayTag` and pick an option for `GameplayEvent`. To send the event, use the function `UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload)`. Activating a `GameplayAbility` by event allows you to pass in a payload with data.
 
-`GameplayAbility` `Triggers` also allow you to activate the `GameplayAbility` when a `GameplayTag` is added or removed.
+이벤트로 `GameplayAbility`를 활성화하려면, `GameplayAbility`의 `Triggers`가 설정되어 있어야 합니다. `GameplayTag`를 할당하고 `GameplayEvent`에 대한 옵션을 선택하세요. 이벤트를 보내려면 `UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload)` 함수를 사용하세요. 이벤트로 `GameplayAbility`를 활성화하면 데이터와 함께 페이로드를 전달할 수 있습니다.
 
-**Note:** When activating a `GameplayAbility` from event in Blueprint, you must use the `ActivateAbilityFromEvent` node.
+`GameplayAbility` `Triggers`는 또한 `GameplayTag`가 추가되거나 제거될 때 `GameplayAbility`를 활성화할 수 있게 합니다.
 
-**Note:** Don't forget to call `EndAbility()` when the `GameplayAbility` should terminate unless you have a `GameplayAbility` that will always run like a passive ability.
+**참고:** 블루프린트에서 이벤트로 `GameplayAbility`를 활성화할 때는 반드시 `ActivateAbilityFromEvent` 노드를 사용해야 합니다.
 
-Activation sequence for **locally predicted** `GameplayAbilities`:
-1. **Owning client** calls `TryActivateAbility()`
-1. Calls `InternalTryActivateAbility()`
-1. Calls `CanActivateAbility()` and returns whether `GameplayTag` requirements are met, if the `ASC` can afford the cost, if the `GameplayAbility` is not on cooldown, and if no other instances are currently active
-1. Calls `CallServerTryActivateAbility()` and passes it the `Prediction Key` that it generates
-1. Calls `CallActivateAbility()`
-1. Calls `PreActivate()` Epic refers to this as "boilerplate init stuff"
-1. Calls `ActivateAbility()` finally activating the ability
+**참고:** 패시브 어빌리티처럼 항상 실행되는 `GameplayAbility`가 아니라면 `GameplayAbility`가 종료되어야 할 때 `EndAbility()`를 호출하는 것을 잊지 마세요.
 
-**Server** receives `CallServerTryActivateAbility()`
-1. Calls `ServerTryActivateAbility()`
-1. Calls `InternalServerTryActivateAbility()` 
-1. Calls `InternalTryActivateAbility()`
-1. Calls `CanActivateAbility()` and returns whether `GameplayTag` requirements are met, if the `ASC` can afford the cost, if the `GameplayAbility` is not on cooldown, and if no other instances are currently active
-1. Calls `ClientActivateAbilitySucceed()` if successful telling it to update its `ActivationInfo` that its activation was confirmed by the server and broadcasting the `OnConfirmDelegate` delegate. This is not the same as input confirmation.
-1. Calls `CallActivateAbility()`
-1. Calls `PreActivate()` Epic refers to this as "boilerplate init stuff"
-1. Calls `ActivateAbility()` finally activating the ability
+**로컬에서 예측된** `GameplayAbilities`의 활성화 순서:
+1. **소유 클라이언트**가 `TryActivateAbility()` 호출
+2. `InternalTryActivateAbility()` 호출
+3. `CanActivateAbility()` 호출 및 `GameplayTag` 요구사항 충족 여부, `ASC`가 비용을 감당할 수 있는지, `GameplayAbility`가 쿨다운 중이 아닌지, 다른 인스턴스가 현재 활성화되어 있지 않은지 반환
+4. `CallServerTryActivateAbility()` 호출 및 생성한 `Prediction Key` 전달
+5. `CallActivateAbility()` 호출
+6. `PreActivate()` 호출 (Epic은 이를 "상용구 초기화 작업"이라고 부름)
+7. `ActivateAbility()` 호출, 마침내 어빌리티 활성화
 
-If at any time the server fails to activate, it will call `ClientActivateAbilityFailed()`, immediately terminating the client's `GameplayAbility` and undoing any predicted changes.
+**서버**가 `CallServerTryActivateAbility()` 수신
+1. `ServerTryActivateAbility()` 호출
+2. `InternalServerTryActivateAbility()` 호출 
+3. `InternalTryActivateAbility()` 호출
+4. `CanActivateAbility()` 호출 및 `GameplayTag` 요구사항 충족 여부, `ASC`가 비용을 감당할 수 있는지, `GameplayAbility`가 쿨다운 중이 아닌지, 다른 인스턴스가 현재 활성화되어 있지 않은지 반환
+5. 성공 시 `ClientActivateAbilitySucceed()` 호출, 활성화가 서버에 의해 확인되었음을 알리는 `ActivationInfo` 업데이트 및 `OnConfirmDelegate` 델리게이트 브로드캐스트. 이는 입력 확인과는 다릅니다.
+6. `CallActivateAbility()` 호출
+7. `PreActivate()` 호출 (Epic은 이를 "상용구 초기화 작업"이라고 부름)
+8. `ActivateAbility()` 호출, 마침내 어빌리티 활성화
+
+서버가 활성화에 실패하면 언제든지 `ClientActivateAbilityFailed()`를 호출하여 클라이언트의 `GameplayAbility`를 즉시 종료하고 예측된 변경사항을 되돌립니다.
 
 <a name="concepts-ga-activating-passive"></a>
-##### 4.6.4.1 Passive Abilities
-To implement passive `GameplayAbilities` that automatically activate and run continuously, override `UGameplayAbility::OnAvatarSet()` which is automatically called when a `GameplayAbility` is granted and the `AvatarActor` is set and call `TryActivateAbility()`.
+##### 4.6.4.1 패시브 어빌리티
+자동으로 활성화되고 지속적으로 실행되는 패시브 `GameplayAbilities`를 구현하려면, `UGameplayAbility::OnAvatarSet()`을 오버라이드하세요. 이 함수는 `GameplayAbility`가 부여되고 `AvatarActor`가 설정될 때 자동으로 호출됩니다. 그리고 `TryActivateAbility()`를 호출하세요.
 
-I recommend adding a `bool` to your custom `UGameplayAbility` class specifying if the `GameplayAbility` should be activated when granted. The Sample Project does this for its passive armor stacking ability.
+사용자 정의 `UGameplayAbility` 클래스에 `GameplayAbility`가 부여될 때 활성화되어야 하는지 지정하는 `bool`을 추가하는 것을 권장합니다. 샘플 프로젝트는 패시브 방어구 스택 능력에 대해 이를 수행합니다.
 
-Passive `GameplayAbilities` will typically have a [`Net Execution Policy`](#concepts-ga-net) of `Server Only`.
+패시브 `GameplayAbilities`는 일반적으로 [`Net Execution Policy`](#concepts-ga-net)가 `Server Only`입니다.
 
 ```c++
 void UGDGameplayAbility::OnAvatarSet(const FGameplayAbilityActorInfo * ActorInfo, const FGameplayAbilitySpec & Spec)
@@ -1958,16 +1959,16 @@ void UGDGameplayAbility::OnAvatarSet(const FGameplayAbilityActorInfo * ActorInfo
 }
 ```
 
-Epic describes this function as the correct place to initiate passive abilities and to do `BeginPlay` type things.
+Epic은 이 함수를 패시브 능력을 시작하고 `BeginPlay` 유형의 작업을 수행하는 올바른 장소로 설명합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-activating-failedtags"></a>
-##### 4.6.4.2 Activation Failed Tags
+##### 4.6.4.2 활성화 실패 태그
 
-Abilities have default logic to tell you why an ability activation failed. To enable this, you must set up the GameplayTags that correspond to the default failure cases.
+어빌리티에는 어빌리티 활성화가 실패한 이유를 알려주는 기본 로직이 있습니다. 이를 활성화하려면 기본 실패 사례에 해당하는 GameplayTags를 설정해야 합니다.
 
-Add these tags (or your own naming convention) to your project:
+프로젝트에 이러한 태그(또는 자체 명명 규칙)를 추가하세요:
 ```
 +GameplayTagList=(Tag="Activation.Fail.BlockedByTags",DevComment="")
 +GameplayTagList=(Tag="Activation.Fail.CantAffordCost",DevComment="")
@@ -1977,7 +1978,7 @@ Add these tags (or your own naming convention) to your project:
 +GameplayTagList=(Tag="Activation.Fail.OnCooldown",DevComment="")
 ```
 
-Then add them to the [`GASDocumentation\Config\DefaultGame.ini`](https://github.com/tranek/GASDocumentation/blob/master/Config/DefaultGame.ini#L8-L13):
+그런 다음 [`GASDocumentation\Config\DefaultGame.ini`](https://github.com/tranek/GASDocumentation/blob/master/Config/DefaultGame.ini#L8-L13)에 추가하세요:
 ```
 [/Script/GameplayAbilities.AbilitySystemGlobals]
 ActivateFailIsDeadName=Activation.Fail.IsDead
@@ -1988,181 +1989,181 @@ ActivateFailTagsMissingName=Activation.Fail.MissingTags
 ActivateFailNetworkingName=Activation.Fail.Networking
 ```
 
-Now whenever an ability activation fails, this corresponding GameplayTag will be included in output log messages or visible on the `showdebug AbilitySystem` hud.
+이제 어빌리티 활성화가 실패할 때마다 해당 GameplayTag가 출력 로그 메시지에 포함되거나 `showdebug AbilitySystem` HUD에 표시됩니다.
 ```
 LogAbilitySystem: Display: InternalServerTryActivateAbility. Rejecting ClientActivation of Default__GA_FireGun_C. InternalTryActivateAbility failed: Activation.Fail.BlockedByTags
 LogAbilitySystem: Display: ClientActivateAbilityFailed_Implementation. PredictionKey :109 Ability: Default__GA_FireGun_C
 ```
 
-![Activation Failed Tags Displayed in showdebug AbilitySystem](https://github.com/tranek/GASDocumentation/raw/master/Images/activationfailedtags.png)
+![showdebug AbilitySystem에 표시된 활성화 실패 태그](https://github.com/tranek/GASDocumentation/raw/master/Images/activationfailedtags.png)
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-cancelabilities"></a>
-#### 4.6.5 Canceling Abilities
-To cancel a `GameplayAbility` from within, you call `CancelAbility()`. This will call `EndAbility()` and set its `WasCancelled` parameter to true.
+#### 4.6.5 어빌리티 취소하기
+내부에서 `GameplayAbility`를 취소하려면 `CancelAbility()`를 호출합니다. 이는 `EndAbility()`를 호출하고 그 `WasCancelled` 매개변수를 true로 설정합니다.
 
-To cancel a `GameplayAbility` externally, the `ASC` provides a few functions:
+외부에서 `GameplayAbility`를 취소하기 위해 `ASC`는 몇 가지 함수를 제공합니다:
 
 ```c++
-/** Cancels the specified ability CDO. */
+/** 지정된 어빌리티 CDO를 취소합니다. */
 void CancelAbility(UGameplayAbility* Ability);	
 
-/** Cancels the ability indicated by passed in spec handle. If handle is not found among reactivated abilities nothing happens. */
+/** 전달된 스펙 핸들로 표시된 어빌리티를 취소합니다. 핸들이 재활성화된 어빌리티 중에 없으면 아무 일도 일어나지 않습니다. */
 void CancelAbilityHandle(const FGameplayAbilitySpecHandle& AbilityHandle);
 
-/** Cancel all abilities with the specified tags. Will not cancel the Ignore instance */
+/** 지정된 태그를 가진 모든 어빌리티를 취소합니다. Ignore 인스턴스는 취소하지 않습니다 */
 void CancelAbilities(const FGameplayTagContainer* WithTags=nullptr, const FGameplayTagContainer* WithoutTags=nullptr, UGameplayAbility* Ignore=nullptr);
 
-/** Cancels all abilities regardless of tags. Will not cancel the ignore instance */
+/** 태그에 관계없이 모든 어빌리티를 취소합니다. ignore 인스턴스는 취소하지 않습니다 */
 void CancelAllAbilities(UGameplayAbility* Ignore=nullptr);
 
-/** Cancels all abilities and kills any remaining instanced abilities */
+/** 모든 어빌리티를 취소하고 남아있는 인스턴스화된 어빌리티를 제거합니다 */
 virtual void DestroyActiveState();
 ```
 
-**Note:** I have found that `CancelAllAbilities` doesn't seem to work right if you have a `Non-Instanced` `GameplayAbilities`. It seems to hit the `Non-Instanced` `GameplayAbility` and give up. `CancelAbilities` can handle `Non-Instanced` `GameplayAbilities` better and that is what the Sample Project uses (Jump is a non-instanced `GameplayAbility`). Your mileage may vary.
+**참고:** `Non-Instanced` `GameplayAbilities`가 있는 경우 `CancelAllAbilities`가 제대로 작동하지 않는 것 같습니다. `Non-Instanced` `GameplayAbility`를 만나면 포기하는 것 같습니다. `CancelAbilities`는 `Non-Instanced` `GameplayAbilities`를 더 잘 처리할 수 있으며 샘플 프로젝트에서 이를 사용합니다(Jump는 non-instanced `GameplayAbility`입니다). 여러분의 경험은 다를 수 있습니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-definition-activeability"></a>
-#### 4.6.6 Getting Active Abilities
-Beginners often ask "How can I get the active ability?" perhaps to set variables on it or to cancel it. More than one `GameplayAbility` can be active at a time so there is no one "active ability". Instead, you must search through an `ASC's` list of `ActivatableAbilities` (granted `GameplayAbilities` that the `ASC` owns) and find the one matching the [`Asset` or `Granted` `GameplayTag`](#concepts-ga-tags) that you are looking for.
+#### 4.6.6 활성 어빌리티 가져오기
+초보자들은 종종 "활성 어빌리티를 어떻게 가져올 수 있나요?"라고 묻습니다. 아마도 변수를 설정하거나 취소하기 위해서일 것입니다. 한 번에 둘 이상의 `GameplayAbility`가 활성화될 수 있으므로 하나의 "활성 어빌리티"는 없습니다. 대신, `ASC`의 `ActivatableAbilities` 목록(ASC가 소유한 부여된 `GameplayAbilities`)을 검색하여 찾고 있는 [`Asset` 또는 `Granted` `GameplayTag`](#concepts-ga-tags)와 일치하는 것을 찾아야 합니다.
 
-`UAbilitySystemComponent::GetActivatableAbilities()` returns a `TArray<FGameplayAbilitySpec>` for you to iterate over.
+`UAbilitySystemComponent::GetActivatableAbilities()`는 반복할 수 있는 `TArray<FGameplayAbilitySpec>`을 반환합니다.
 
-The `ASC` also has another helper function that takes in a `GameplayTagContainer` as a parameter to assist in searching instead of manually iterating over the list of `GameplayAbilitySpecs`. The `bOnlyAbilitiesThatSatisfyTagRequirements` parameter will only return `GameplayAbilitySpecs` that satisfy their `GameplayTag` requirements and could be activated right now. For example, you could have two basic attack `GameplayAbilities`, one with a weapon and one with bare fists, and the correct one activates depending on if a weapon is equipped setting the `GameplayTag` requirement. See Epic's comment on the function for more information.
+`ASC`는 또한 수동으로 `GameplayAbilitySpecs` 목록을 반복하는 대신 매개변수로 `GameplayTagContainer`를 받아 검색을 돕는 다른 헬퍼 함수를 가지고 있습니다. `bOnlyAbilitiesThatSatisfyTagRequirements` 매개변수는 `GameplayTag` 요구사항을 만족하고 지금 바로 활성화될 수 있는 `GameplayAbilitySpecs`만 반환합니다. 예를 들어, 무기를 들고 있을 때와 맨손일 때 각각 다른 기본 공격 `GameplayAbilities`를 가질 수 있고, 무기 장착 여부에 따라 `GameplayTag` 요구사항을 설정하여 올바른 것이 활성화됩니다. 자세한 정보는 함수에 대한 Epic의 주석을 참조하세요.
 ```c++
 UAbilitySystemComponent::GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities, bool bOnlyAbilitiesThatSatisfyTagRequirements = true)
 ```
 
-Once you get the `FGameplayAbilitySpec` that you are looking for, you can call `IsActive()` on it.
+찾고 있는 `FGameplayAbilitySpec`을 얻으면 그것에 대해 `IsActive()`를 호출할 수 있습니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-instancing"></a>
-#### 4.6.7 Instancing Policy
-A `GameplayAbility's` `Instancing Policy` determines if and how the `GameplayAbility` is instanced when activated.
+#### 4.6.7 인스턴싱 정책
+`GameplayAbility`의 `Instancing Policy`는 활성화될 때 `GameplayAbility`가 인스턴스화되는지와 어떻게 인스턴스화되는지를 결정합니다.
 
-| `Instancing Policy`     | Description                                                                                      | Example of when to use                                                                                                                                                                                                                                                                                                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Instanced Per Actor     | Each `ASC` only has one instance of the `GameplayAbility` that is reused between activations.    | This will probably be the `Instancing Policy` that you use the most. You can use it for any ability and provides persistence between activations. The designer is responsible for manually resetting any variables between activations that need it.                                                                                                                                                               |
-| Instanced Per Execution | Every time a `GameplayAbility` is activated, a new instance of the `GameplayAbility` is created. | The benefit of these `GameplayAbilities` is that the variables are reset everytime you activate. These provide worse performance than `Instanced Per Actor` since they will spawn new `GameplayAbilities` every time they activate. The Sample Project does not use any of these.                                                                                                                                 |
-| Non-Instanced           | The `GameplayAbility` operates on its `ClassDefaultObject`. No instances are created.            | This has the best performance of the three but is the most restrictive in what can be done with it. `Non-Instanced` `GameplayAbilities` cannot store state, meaning no dynamic variables and no binding to `AbilityTask` delegates. The best place to use them is for frequently used simple abilities like minion basic attacks in a MOBA or RTS. The Sample Project's Jump `GameplayAbility` is `Non-Instanced`. |
+| `Instancing Policy`     | 설명                                                                                 | 사용 예시                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Instanced Per Actor     | 각 `ASC`는 활성화 사이에 재사용되는 `GameplayAbility`의 인스턴스를 하나만 가집니다.  | 이는 가장 많이 사용하게 될 `Instancing Policy`일 것입니다. 어떤 능력에도 사용할 수 있으며 활성화 사이에 지속성을 제공합니다. 디자이너는 필요한 경우 활성화 사이에 변수를 수동으로 재설정해야 합니다.                                                                                                           |
+| Instanced Per Execution | `GameplayAbility`가 활성화될 때마다 새로운 `GameplayAbility` 인스턴스가 생성됩니다.  | 이러한 `GameplayAbilities`의 이점은 활성화할 때마다 변수가 재설정된다는 것입니다. 활성화할 때마다 새로운 `GameplayAbilities`를 생성하므로 `Instanced Per Actor`보다 성능이 떨어집니다. 샘플 프로젝트는 이들 중 어느 것도 사용하지 않습니다.                                                                     |
+| Non-Instanced           | `GameplayAbility`는 `ClassDefaultObject`에서 작동합니다. 인스턴스가 생성되지 않습니다. | 이는 세 가지 중 가장 좋은 성능을 가지지만 수행할 수 있는 작업에 가장 제한적입니다. `Non-Instanced` `GameplayAbilities`는 상태를 저장할 수 없습니다. 즉, 동적 변수와 `AbilityTask` 델리게이트에 바인딩할 수 없습니다. MOBA나 RTS의 미니언 기본 공격과 같은 자주 사용되는 간단한 능력에 가장 적합합니다. 샘플 프로젝트의 Jump `GameplayAbility`는 `Non-Instanced`입니다. |
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-net"></a>
-#### 4.6.8 Net Execution Policy
-A `GameplayAbility's` `Net Execution Policy` determines who runs the `GameplayAbility` and in what order.
+#### 4.6.8 넷 실행 정책
+`GameplayAbility`의 `Net Execution Policy`는 누가 `GameplayAbility`를 실행하고 어떤 순서로 실행하는지 결정합니다.
 
-| `Net Execution Policy` | Description                                                                                                                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Local Only`           | The `GameplayAbility` is only run on the owning client. This could be useful for abilities that only make local cosmetic changes. Single player games should use `Server Only`.                                     |
-| `Local Predicted`      | `Local Predicted` `GameplayAbilities` activate first on the owning client and then on the server. The server's version will correct anything that the client predicted incorrectly. See [Prediction](#concepts-p). |
-| `Server Only`          | The `GameplayAbility` is only run on the server. Passive `GameplayAbilities` will typically be `Server Only`. Single player games should use this.                                                                  |
-| `Server Initiated`     | `Server Initiated` `GameplayAbilities` activate first on the server and then on the owning client. I personally haven't used these much if any.                                                                     | 
+| `Net Execution Policy` | 설명                                                                                                                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Local Only`           | `GameplayAbility`는 소유 클라이언트에서만 실행됩니다. 이는 로컬 시각적 변경만 하는 능력에 유용할 수 있습니다. 싱글 플레이어 게임은 `Server Only`를 사용해야 합니다.              |
+| `Local Predicted`      | `Local Predicted` `GameplayAbilities`는 먼저 소유 클라이언트에서 실행된 다음 서버에서 실행됩니다. 서버 버전은 클라이언트가 잘못 예측한 것을 수정합니다. [예측](#concepts-p) 참조. |
+| `Server Only`          | `GameplayAbility`는 서버에서만 실행됩니다. 패시브 `GameplayAbilities`는 일반적으로 `Server Only`가 될 것입니다. 싱글 플레이어 게임은 이것을 사용해야 합니다.                     |
+| `Server Initiated`     | `Server Initiated` `GameplayAbilities`는 먼저 서버에서 실행된 다음 소유 클라이언트에서 실행됩니다. 개인적으로 이것을 많이 사용하지 않았습니다.                                   | 
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-tags"></a>
-#### 4.6.9 Ability Tags
-`GameplayAbilities` come with `GameplayTagContainers` with built-in logic. None of these `GameplayTags` are replicated.
+#### 4.6.9 어빌리티 태그
+`GameplayAbilities`는 내장된 로직을 가진 `GameplayTagContainers`와 함께 제공됩니다. 이 `GameplayTags` 중 어느 것도 복제되지 않습니다.
 
-| `GameplayTag Container`     | Description                                                                                                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Ability Tags`              | `GameplayTags` that the `GameplayAbility` owns. These are just `GameplayTags` to describe the `GameplayAbility`.                                                                              |
-| `Cancel Abilities with Tag` | Other `GameplayAbilities` that have these `GameplayTags` in their `Ability Tags` will be canceled when this `GameplayAbility` is activated.                                                   |
-| `Block Abilities with Tag`  | Other `GameplayAbilities` that have these `GameplayTags` in their `Ability Tags` are blocked from activating while this `GameplayAbility` is active.                                          |
-| `Activation Owned Tags`     | These `GameplayTags` are given to the `GameplayAbility's` owner while this `GameplayAbility` is active. Remember these are not replicated.                                                    |
-| `Activation Required Tags`  | This `GameplayAbility` can only be activated if the owner has **all** of these `GameplayTags`.                                                                                                |
-| `Activation Blocked Tags`   | This `GameplayAbility` cannot be activated if the owner has **any** of these `GameplayTags`.                                                                                                  |
-| `Source Required Tags`      | This `GameplayAbility` can only be activated if the `Source` has **all** of these `GameplayTags`. The `Source` `GameplayTags` are only set if the `GameplayAbility` is triggered by an event. |
-| `Source Blocked Tags`       | This `GameplayAbility` cannot be activated if the `Source` has **any** of these `GameplayTags`. The `Source` `GameplayTags` are only set if the `GameplayAbility` is triggered by an event.   |
-| `Target Required Tags`      | This `GameplayAbility` can only be activated if the `Target` has **all** of these `GameplayTags`. The `Target` `GameplayTags` are only set if the `GameplayAbility` is triggered by an event. |
-| `Target Blocked Tags`       | This `GameplayAbility` cannot be activated if the `Target` has **any** of these `GameplayTags`. The `Target` `GameplayTags` are only set if the `GameplayAbility` is triggered by an event.   |
+| `GameplayTag Container`     | 설명                                                                                                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ability Tags`              | `GameplayAbility`가 소유한 `GameplayTags`. 이들은 단순히 `GameplayAbility`를 설명하는 `GameplayTags`입니다.                                                             |
+| `Cancel Abilities with Tag` | 이 `GameplayAbility`가 활성화될 때 `Ability Tags`에 이 `GameplayTags`를 가진 다른 `GameplayAbilities`가 취소됩니다.                                                     |
+| `Block Abilities with Tag`  | 이 `GameplayAbility`가 활성 상태인 동안 `Ability Tags`에 이 `GameplayTags`를 가진 다른 `GameplayAbilities`의 활성화가 차단됩니다.                                       |
+| `Activation Owned Tags`     | 이 `GameplayAbility`가 활성 상태인 동안 `GameplayAbility`의 소유자에게 이 `GameplayTags`가 주어집니다. 이들은 복제되지 않는다는 점을 기억하세요.                        |
+| `Activation Required Tags`  | 이 `GameplayAbility`는 소유자가 이 `GameplayTags`를 **모두** 가지고 있을 때만 활성화될 수 있습니다.                                                                     |
+| `Activation Blocked Tags`   | 이 `GameplayAbility`는 소유자가 이 `GameplayTags` 중 **하나라도** 가지고 있으면 활성화될 수 없습니다.                                                                   |
+| `Source Required Tags`      | 이 `GameplayAbility`는 `Source`가 이 `GameplayTags`를 **모두** 가지고 있을 때만 활성화될 수 있습니다. `Source` `GameplayTags`는 `GameplayAbility`가 이벤트에 의해 트리거된 경우에만 설정됩니다. |
+| `Source Blocked Tags`       | 이 `GameplayAbility`는 `Source`가 이 `GameplayTags` 중 **하나라도** 가지고 있으면 활성화될 수 없습니다. `Source` `GameplayTags`는 `GameplayAbility`가 이벤트에 의해 트리거된 경우에만 설정됩니다. |
+| `Target Required Tags`      | 이 `GameplayAbility`는 `Target`이 이 `GameplayTags`를 **모두** 가지고 있을 때만 활성화될 수 있습니다. `Target` `GameplayTags`는 `GameplayAbility`가 이벤트에 의해 트리거된 경우에만 설정됩니다. |
+| `Target Blocked Tags`       | 이 `GameplayAbility`는 `Target`이 이 `GameplayTags` 중 **하나라도** 가지고 있으면 활성화될 수 없습니다. `Target` `GameplayTags`는 `GameplayAbility`가 이벤트에 의해 트리거된 경우에만 설정됩니다. |
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-spec"></a>
-#### 4.6.10 Gameplay Ability Spec
-A `GameplayAbilitySpec` exists on the `ASC` after a `GameplayAbility` is granted and defines the activatable `GameplayAbility` - `GameplayAbility` class, level, input bindings, and runtime state that must be kept separate from the `GameplayAbility` class.
+#### 4.6.10 게임플레이 어빌리티 스펙
+`GameplayAbilitySpec`은 `GameplayAbility`가 부여된 후 `ASC`에 존재하며 활성화 가능한 `GameplayAbility`를 정의합니다 - `GameplayAbility` 클래스, 레벨, 입력 바인딩, 그리고 `GameplayAbility` 클래스와 별도로 유지되어야 하는 런타임 상태를 포함합니다.
 
-When a `GameplayAbility` is granted on the server, the server replicates the `GameplayAbilitySpec` to the owning client so that she may activate it.
+`GameplayAbility`가 서버에서 부여되면, 서버는 `GameplayAbilitySpec`을 소유 클라이언트에게 복제하여 클라이언트가 이를 활성화할 수 있도록 합니다.
 
-Activating a `GameplayAbilitySpec` will create an instance (or not for `Non-Instanced` `GameplayAbilities`) of the `GameplayAbility` depending on its `Instancing Policy`.
+`GameplayAbilitySpec`을 활성화하면 `Instancing Policy`에 따라 `GameplayAbility`의 인스턴스가 생성됩니다(`Non-Instanced` `GameplayAbilities`의 경우 생성되지 않음).
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-data"></a>
-#### 4.6.11 Passing Data to Abilities
-The general paradigm for `GameplayAbilities` is `Activate->Generate Data->Apply->End`. Sometimes you need to act on existing data. GAS provides a few options for getting external data into your `GameplayAbilities`:
+#### 4.6.11 어빌리티에 데이터 전달하기
+`GameplayAbilities`의 일반적인 패러다임은 `활성화->데이터 생성->적용->종료`입니다. 때로는 기존 데이터에 대해 작업해야 할 수 있습니다. GAS는 외부 데이터를 `GameplayAbilities`에 가져오기 위한 몇 가지 옵션을 제공합니다:
 
-| Method                                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Activate `GameplayAbility` by Event             | Activate a `GameplayAbility` with an event containing a payload of data. The event's payload is replicated from client to server for local predicted `GameplayAbilities`. Use the two `Optional Object` or the [`TargetData`](#concepts-targeting-data) variables for arbitrary data that does not fit any of the existing variables. The downside to this is that it prevents you from activating the ability with an input bind. To activate a `GameplayAbility` by event, the `GameplayAbility` must have its `Triggers` set up in the `GameplayAbility`. Assign a `GameplayTag` and pick an option for `GameplayEvent`. To send the event, use the function `UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload)`. |
-| Use `WaitGameplayEvent` `AbilityTask`           | Use the `WaitGameplayEvent` `AbilityTask` to tell the `GameplayAbility` to listen for an event with payload data after it activates. The event payload and the process to send it is the same as activating `GameplayAbilities` by event. The downside to this is that events are not replicated by the `AbilityTask` and should only be used for `Local Only` and `Server Only` `GameplayAbilities`. You potentially could write your own `AbilityTask` that will replicate the event payload.                                                                                                                                                                                                                                                                                               |
-| Use `TargetData`                                | A custom `TargetData` struct is a good way to pass arbitrary data between the client and server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Store Data on the `OwnerActor` or `AvatarActor` | Use replicated variables stored on the `OwnerActor`, `AvatarActor`, or any other object that you can get a reference to. This method is the most flexible and will work with `GameplayAbilities` activated by input binds. However, it does not guarantee the data will be synchronized from replication at the time of use. You must ensure that ahead of time - meaning if you set a replicated variable and then immediately activate a `GameplayAbility` there is no guarantee the order that will happen on the receiver due to potential packet loss.                                                                                                                                                                                                                                   |
+| 방법                                           | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 이벤트로 `GameplayAbility` 활성화              | 데이터 페이로드를 포함한 이벤트로 `GameplayAbility`를 활성화합니다. 이벤트의 페이로드는 로컬 예측 `GameplayAbilities`를 위해 클라이언트에서 서버로 복제됩니다. 기존 변수에 맞지 않는 임의의 데이터에 대해 두 개의 `Optional Object` 또는 [`TargetData`](#concepts-targeting-data) 변수를 사용하세요. 이 방법의 단점은 입력 바인딩으로 어빌리티를 활성화할 수 없다는 것입니다. 이벤트로 `GameplayAbility`를 활성화하려면 `GameplayAbility`의 `Triggers`가 설정되어 있어야 합니다. `GameplayTag`를 할당하고 `GameplayEvent`에 대한 옵션을 선택하세요. 이벤트를 보내려면 `UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload)` 함수를 사용하세요. |
+| `WaitGameplayEvent` `AbilityTask` 사용         | `WaitGameplayEvent` `AbilityTask`를 사용하여 `GameplayAbility`에게 활성화 후 페이로드 데이터가 있는 이벤트를 수신하도록 지시합니다. 이벤트 페이로드와 전송 프로세스는 이벤트로 `GameplayAbilities`를 활성화하는 것과 동일합니다. 이 방법의 단점은 이벤트가 `AbilityTask`에 의해 복제되지 않으므로 `Local Only`와 `Server Only` `GameplayAbilities`에만 사용해야 한다는 것입니다. 잠재적으로 이벤트 페이로드를 복제하는 자체 `AbilityTask`를 작성할 수 있습니다.                                                                                                                                                                                                                               |
+| `TargetData` 사용                              | 사용자 정의 `TargetData` 구조체는 클라이언트와 서버 간에 임의의 데이터를 전달하는 좋은 방법입니다.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `OwnerActor` 또는 `AvatarActor`에 데이터 저장  | `OwnerActor`, `AvatarActor` 또는 참조할 수 있는 다른 객체에 저장된 복제된 변수를 사용합니다. 이 방법은 가장 유연하며 입력 바인딩으로 활성화된 `GameplayAbilities`에서도 작동합니다. 그러나 사용 시점에 복제로 인한 데이터 동기화를 보장하지 않습니다. 이를 미리 보장해야 합니다 - 즉, 복제된 변수를 설정한 다음 즉시 `GameplayAbility`를 활성화하면 잠재적인 패킷 손실로 인해 수신자 측에서 발생하는 순서가 보장되지 않습니다.                                                                                                                                                                                                                                                                        |
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-commit"></a>
-#### 4.6.12 Ability Cost and Cooldown
-`GameplayAbilities` come with functionality for optional costs and cooldowns. Costs are predefined amounts of `Attributes` that the `ASC` must have in order to activate the `GameplayAbility` implemented with an `Instant` `GameplayEffect` ([`Cost GE`](#concepts-ge-cost)). Cooldowns are timers that prevent the reactivation of a `GameplayAbility` until it expires and is implemented with a `Duration` `GameplayEffect` ([`Cooldown GE`](#concepts-ge-cooldown)).
+#### 4.6.12 어빌리티 비용과 쿨다운
+`GameplayAbilities`는 선택적 비용과 쿨다운 기능을 제공합니다. 비용은 `GameplayAbility`를 활성화하기 위해 `ASC`가 가져야 하는 미리 정의된 `Attributes` 양으로, `Instant` `GameplayEffect`([`Cost GE`](#concepts-ge-cost))로 구현됩니다. 쿨다운은 만료될 때까지 `GameplayAbility`의 재활성화를 방지하는 타이머로, `Duration` `GameplayEffect`([`Cooldown GE`](#concepts-ge-cooldown))로 구현됩니다.
 
-Before a `GameplayAbility` calls `UGameplayAbility::Activate()`, it calls `UGameplayAbility::CanActivateAbility()`. This function checks if the owning `ASC` can afford the cost (`UGameplayAbility::CheckCost()`) and ensures that the `GameplayAbility` is not on cooldown (`UGameplayAbility::CheckCooldown()`).
+`GameplayAbility`가 `UGameplayAbility::Activate()`를 호출하기 전에 `UGameplayAbility::CanActivateAbility()`를 호출합니다. 이 함수는 소유 `ASC`가 비용을 감당할 수 있는지 확인하고(`UGameplayAbility::CheckCost()`) `GameplayAbility`가 쿨다운 중이 아닌지 확인합니다(`UGameplayAbility::CheckCooldown()`).
 
-After a `GameplayAbility` calls `Activate()`, it can optionally commit the cost and cooldown at any time using `UGameplayAbility::CommitAbility()` which calls `UGameplayAbility::CommitCost()` and `UGameplayAbility::CommitCooldown()`. The designer may choose to call `CommitCost()` or `CommitCooldown()` separately if they shouldn't be committed at the same time. Committing cost and cooldown calls `CheckCost()` and `CheckCooldown()` one more time and is the last chance for the `GameplayAbility` to fail related to them. The owning `ASC's` `Attributes` could potentially change after a `GameplayAbility` is activated, failing to meet the cost at time of commit. Committing the cost and cooldown can be [locally predicted](#concepts-p) if the [prediction key](#concepts-p-key) is valid at the time of commit.
+`GameplayAbility`가 `Activate()`를 호출한 후, `UGameplayAbility::CommitAbility()`를 사용하여 언제든지 선택적으로 비용과 쿨다운을 커밋할 수 있습니다. 이는 `UGameplayAbility::CommitCost()`와 `UGameplayAbility::CommitCooldown()`을 호출합니다. 디자이너는 동시에 커밋되어서는 안 되는 경우 `CommitCost()` 또는 `CommitCooldown()`을 별도로 호출할 수 있습니다. 비용과 쿨다운을 커밋하면 `CheckCost()`와 `CheckCooldown()`을 한 번 더 호출하며, 이는 `GameplayAbility`가 관련하여 실패할 수 있는 마지막 기회입니다. 소유 `ASC`의 `Attributes`는 `GameplayAbility`가 활성화된 후 잠재적으로 변경될 수 있어 커밋 시점에 비용을 충족하지 못할 수 있습니다. 비용과 쿨다운의 커밋은 커밋 시점에 [예측 키](#concepts-p-key)가 유효한 경우 [로컬에서 예측](#concepts-p)될 수 있습니다.
 
-See [`CostGE`](#concepts-ge-cost) and [`CooldownGE`](#concepts-ge-cooldown) for implementation details.
+구현 세부 사항은 [`CostGE`](#concepts-ge-cost)와 [`CooldownGE`](#concepts-ge-cooldown)를 참조하세요.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-leveling"></a>
-#### 4.6.13 Leveling Up Abilities
-There are two common methods for leveling up an ability:
+#### 4.6.13 어빌리티 레벨 업
+어빌리티의 레벨을 올리는 두 가지 일반적인 방법이 있습니다:
 
-| Level Up Method                            | Description                                                                                                                                                                                                      |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ungrant and Regrant at the New Level       | Ungrant (remove) the `GameplayAbility` from the `ASC` and regrant it back at the next level on the server. This terminates the `GameplayAbility` if it was active at the time.                                   |
-| Increase the `GameplayAbilitySpec's` Level | On the server, find the `GameplayAbilitySpec`, increase its level, and mark it dirty so that replicates to the owning client. This method does not terminate the `GameplayAbility` if it was active at the time. |
+| 레벨 업 방법                            | 설명                                                                                                                                                                          |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 취소 후 새 레벨로 재부여                | 서버에서 `ASC`에서 `GameplayAbility`를 취소(제거)하고 다음 레벨로 다시 부여합니다. 이는 당시 활성 상태였던 `GameplayAbility`를 종료합니다.                                    |
+| `GameplayAbilitySpec`의 레벨 증가       | 서버에서 `GameplayAbilitySpec`을 찾아 레벨을 증가시키고 더티로 표시하여 소유 클라이언트에 복제되도록 합니다. 이 방법은 당시 활성 상태였던 `GameplayAbility`를 종료하지 않습니다. |
 
-The main difference between the two methods is if you want active `GameplayAbilities` to be canceled at the time of level up. You will most likely use both methods depending on your `GameplayAbilities`. I recommend adding a `bool` to your `UGameplayAbility` subclass specifying which method to use.
+두 방법의 주요 차이점은 레벨 업 시 활성 `GameplayAbilities`를 취소할지 여부입니다. `GameplayAbilities`에 따라 두 방법을 모두 사용하게 될 것입니다. `UGameplayAbility` 서브클래스에 어떤 방법을 사용할지 지정하는 `bool`을 추가하는 것을 추천합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-sets"></a>
-#### 4.6.14 Ability Sets
-`GameplayAbilitySets` are convenience `UDataAsset` classes for holding input bindings and lists of startup `GameplayAbilities` for Characters with logic to grant the `GameplayAbilities`. Subclasses can also include extra logic or properties. Paragon had a `GameplayAbilitySet` per hero that included all of their given `GameplayAbilities`.
+#### 4.6.14 어빌리티 세트
+`GameplayAbilitySets`는 캐릭터의 입력 바인딩과 시작 `GameplayAbilities` 목록을 보유하고 `GameplayAbilities`를 부여하는 로직을 포함하는 편리한 `UDataAsset` 클래스입니다. 서브클래스는 추가 로직이나 속성을 포함할 수도 있습니다. Paragon은 각 영웅마다 주어진 모든 `GameplayAbilities`를 포함하는 `GameplayAbilitySet`를 가지고 있었습니다.
 
-I find this class to be unnecessary at least given what I've seen of it so far. The Sample Project handles all of the functionality of `GameplayAbilitySets` inside of the `GDCharacterBase` and its subclasses.
+지금까지 본 바로는 이 클래스가 불필요하다고 생각합니다. 샘플 프로젝트는 `GameplayAbilitySets`의 모든 기능을 `GDCharacterBase`와 그 서브클래스 내부에서 처리합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-batching"></a>
-#### 4.6.15 Ability Batching
-Traditional `Gameplay Ability` lifecycle involves a minimum of two or three RPCs from the client to the server.
+#### 4.6.15 어빌리티 배칭
+전통적인 `Gameplay Ability` 라이프사이클은 클라이언트에서 서버로 최소 두 개 또는 세 개의 RPC를 포함합니다.
 
 1. `CallServerTryActivateAbility()`
-1. `ServerSetReplicatedTargetData()` (Optional)
-1. `ServerEndAbility()`
+2. `ServerSetReplicatedTargetData()` (선택사항)
+3. `ServerEndAbility()`
 
-If a `GameplayAbility` performs all of these actions in one atomic grouping in a frame, we can optimize this workflow to batch (combine) all two or three RPCs into one RPC. `GAS` refers to this RPC optimization as `Ability Batching`. The common example of when to use `Ability Batching` is for hitscan guns. Hitscan guns activate, do a line trace, send the [`TargetData`](#concepts-targeting-data) to the server, and end the ability all in one atomic group in one frame. The [GASShooter](https://github.com/tranek/GASShooter) sample project demonstrates this technique for its hitscan guns.
+`GameplayAbility`가 한 프레임에서 이 모든 작업을 하나의 원자적 그룹으로 수행하는 경우, 이 워크플로우를 최적화하여 두 개 또는 세 개의 RPC를 하나의 RPC로 배치(결합)할 수 있습니다. `GAS`는 이 RPC 최적화를 `Ability Batching`이라고 부릅니다. `Ability Batching`을 사용하는 일반적인 예는 히트스캔 총입니다. 히트스캔 총은 한 프레임에서 하나의 원자적 그룹으로 활성화, 선 추적 수행, [`TargetData`](#concepts-targeting-data)를 서버로 전송, 어빌리티 종료를 수행합니다. [GASShooter](https://github.com/tranek/GASShooter) 샘플 프로젝트는 히트스캔 총에 대해 이 기술을 보여줍니다.
 
-Semi-Automatic guns are the best case scenario and batch the `CallServerTryActivateAbility()`, `ServerSetReplicatedTargetData()` (the bullet hit result), and `ServerEndAbility()` into one RPC instead of three RPCs.
+반자동 총은 가장 좋은 시나리오이며 `CallServerTryActivateAbility()`, `ServerSetReplicatedTargetData()` (총알 명중 결과), `ServerEndAbility()`를 세 개의 RPC 대신 하나의 RPC로 배치합니다.
 
-Full-Automatic/Burst guns batch `CallServerTryActivateAbility()` and `ServerSetReplicatedTargetData()` for the first bullet into one RPC instead of two RPCs. Each subsequent bullet is its own `ServerSetReplicatedTargetData()` RPC. Finally, `ServerEndAbility()` is sent as a separate RPC when the gun stops firing. This is a worst case scenario where we only save one RPC on the first bullet instead of two. This scenario could have also been implemented with activating the ability via a [`Gameplay Event`](#concepts-ga-data) which would send the bullet's `TargetData` in with the `EventPayload` to the server from the client. The downside of the latter approach is that the `TargetData` would have to be generated externally to the ability whereas the batching approach generates the `TargetData` inside of the ability.
+완전 자동/연발 총은 첫 번째 총알에 대해 `CallServerTryActivateAbility()`와 `ServerSetReplicatedTargetData()`를 두 개의 RPC 대신 하나의 RPC로 배치합니다. 각 후속 총알은 자체 `ServerSetReplicatedTargetData()` RPC입니다. 마지막으로, 총 발사가 멈추면 `ServerEndAbility()`가 별도의 RPC로 전송됩니다. 이는 첫 번째 총알에 대해 두 개 대신 하나의 RPC만 절약하는 최악의 시나리오입니다. 이 시나리오는 [`Gameplay Event`](#concepts-ga-data)를 통해 어빌리티를 활성화하여 구현할 수도 있었습니다. 이 경우 총알의 `TargetData`를 클라이언트에서 서버로 `EventPayload`와 함께 전송합니다. 후자 접근 방식의 단점은 `TargetData`를 어빌리티 외부에서 생성해야 하는 반면, 배칭 접근 방식은 어빌리티 내부에서 `TargetData`를 생성한다는 것입니다.
 
-`Ability Batching` is disabled by default on the [`ASC`](#concepts-asc). To enable `Ability Batching`, override `ShouldDoServerAbilityRPCBatch()` to return true:
+`Ability Batching`은 기본적으로 [`ASC`](#concepts-asc)에서 비활성화되어 있습니다. `Ability Batching`을 활성화하려면 `ShouldDoServerAbilityRPCBatch()`를 오버라이드하여 true를 반환하도록 합니다:
 
 ```c++
 virtual bool ShouldDoServerAbilityRPCBatch() const override { return true; }
 ```
 
-Now that `Ability Batching` is enabled, before activating abilities that you want batched, you must create a `FScopedServerAbilityRPCBatcher` struct beforehand. This special struct will try to batch any abilities following it within its scope. Once the `FScopedServerAbilityRPCBatcher` falls out of scope, any abilities activated will not try to batch. `FScopedServerAbilityRPCBatcher` works by having special code in each of the functions that can be batched that intercepts the call from sending the RPC and instead packs the message into a batch struct. When `FScopedServerAbilityRPCBatcher` falls out of scope, it automatically RPCs this batch struct to the server in `UAbilitySystemComponent::EndServerAbilityRPCBatch()`. The server receives the batch RPC in `UAbilitySystemComponent::ServerAbilityRPCBatch_Internal(FServerAbilityRPCBatch& BatchInfo)`. The `BatchInfo` parameter will contain flags for if the ability should end and if input was pressed at the time of activation and the `TargetData` if that was included. This is a good function to put a breakpoint on to confirm that your batching is working properly. Alternatively, use the cvar `AbilitySystem.ServerRPCBatching.Log 1` to enable special ability batching logging.
+이제 `Ability Batching`이 활성화되었으므로, 배치하려는 어빌리티를 활성화하기 전에 `FScopedServerAbilityRPCBatcher` 구조체를 미리 생성해야 합니다. 이 특별한 구조체는 그 범위 내에서 이어지는 모든 어빌리티를 배치하려고 시도합니다. `FScopedServerAbilityRPCBatcher`가 범위를 벗어나면, 활성화된 어빌리티는 배치를 시도하지 않습니다. `FScopedServerAbilityRPCBatcher`는 배치될 수 있는 각 함수에 특별한 코드를 가지고 있어 RPC 전송을 가로채고 대신 메시지를 배치 구조체에 패킹합니다. `FScopedServerAbilityRPCBatcher`가 범위를 벗어나면, `UAbilitySystemComponent::EndServerAbilityRPCBatch()`에서 이 배치 구조체를 서버로 자동으로 RPC합니다. 서버는 `UAbilitySystemComponent::ServerAbilityRPCBatch_Internal(FServerAbilityRPCBatch& BatchInfo)`에서 배치 RPC를 받습니다. `BatchInfo` 매개변수는 어빌리티가 종료되어야 하는지, 활성화 시 입력이 눌렸는지에 대한 플래그와 포함된 경우 `TargetData`를 포함합니다. 배칭이 제대로 작동하는지 확인하려면 이 함수에 중단점을 설정하는 것이 좋습니다. 또는 `AbilitySystem.ServerRPCBatching.Log 1` cvar를 사용하여 특별한 어빌리티 배칭 로깅을 활성화할 수 있습니다.
 
-This mechanism can only be done in C++ and can only activate abilities by their `FGameplayAbilitySpecHandle`.
+이 메커니즘은 C++에서만 수행할 수 있으며 `FGameplayAbilitySpecHandle`로만 어빌리티를 활성화할 수 있습니다.
 
 ```c++
 bool UGSAbilitySystemComponent::BatchRPCTryActivateAbility(FGameplayAbilitySpecHandle InAbilityHandle, bool EndAbilityImmediately)
@@ -2190,67 +2191,67 @@ bool UGSAbilitySystemComponent::BatchRPCTryActivateAbility(FGameplayAbilitySpecH
 }
 ```
 
-GASShooter reuses the same batched `GameplayAbility` for semi-automatic and full-automatic guns which never directly call `EndAbility()` (it is handled outside of the ability by a local-only ability that manages player input and the call to the batched ability based on the current firemode). Since all of the RPCs must happen within the scope of the `FScopedServerAbilityRPCBatcher`, I provide the `EndAbilityImmediately` parameter so that the controlling/managing local-only can specify whether this ability should batch the `EndAbility()` call (semi-automatic), or not batch the `EndAbility()` call (full-automatic) and the `EndAbility()` call will happen sometime later in its own RPC.
+GASShooter는 반자동 및 완전 자동 총에 대해 동일한 배치된 `GameplayAbility`를 재사용합니다. 이 어빌리티는 `EndAbility()`를 직접 호출하지 않습니다(현재 발사 모드에 따라 배치된 어빌리티에 대한 호출과 플레이어 입력을 관리하는 로컬 전용 어빌리티에 의해 어빌리티 외부에서 처리됩니다). 모든 RPC는 `FScopedServerAbilityRPCBatcher`의 범위 내에서 발생해야 하므로, 제어/관리하는 로컬 전용 어빌리티가 이 어빌리티가 `EndAbility()` 호출을 배치해야 하는지(반자동) 또는 배치하지 않아야 하는지(완전 자동)를 지정할 수 있도록 `EndAbilityImmediately` 매개변수를 제공합니다. 후자의 경우 `EndAbility()` 호출은 나중에 자체 RPC로 발생합니다.
 
-GASShooter exposes a Blueprint node to allow batching abilities which the aforementioned local-only ability uses to trigger the batched ability.
+GASShooter는 앞서 언급한 로컬 전용 어빌리티가 배치된 어빌리티를 트리거하는 데 사용하는 블루프린트 노드를 노출합니다.
 
-![Activate Batched Ability](https://github.com/tranek/GASDocumentation/raw/master/Images/batchabilityactivate.png)
+![배치된 어빌리티 활성화](https://github.com/tranek/GASDocumentation/raw/master/Images/batchabilityactivate.png)
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-ga-netsecuritypolicy"></a>
-#### 4.6.16 Net Security Policy
-A `GameplayAbility`'s `NetSecurityPolicy` determines where should an ability execute on the network. It provides protection from clients attempting to execute restricted abilities.
+#### 4.6.16 네트워크 보안 정책
+`GameplayAbility`의 `NetSecurityPolicy`는 네트워크에서 어빌리티가 어디서 실행되어야 하는지 결정합니다. 이는 클라이언트가 제한된 어빌리티를 실행하려는 시도로부터 보호합니다.
 
-| `NetSecurityPolicy`     | Description                                                                                                                                        |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ClientOrServer`        | No security requirements. Client or server can trigger execution and termination of this ability freely.                                           |
-| `ServerOnlyExecution`   | A client requesting execution of this ability will be ignored by the server. Clients can still request that the server cancel or end this ability. |
-| `ServerOnlyTermination` | A client requesting cancellation or ending of this ability will be ignored by the server. Clients can still request execution of the ability.      |
-| `ServerOnly`            | Server controls both execution and termination of this ability. A client making any requests will be ignored.                                      |
+| `NetSecurityPolicy`     | 설명                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `ClientOrServer`        | 보안 요구사항 없음. 클라이언트나 서버가 이 어빌리티의 실행과 종료를 자유롭게 트리거할 수 있습니다.                                   |
+| `ServerOnlyExecution`   | 이 어빌리티의 실행을 요청하는 클라이언트는 서버에 의해 무시됩니다. 클라이언트는 여전히 서버에 이 어빌리티의 취소나 종료를 요청할 수 있습니다. |
+| `ServerOnlyTermination` | 이 어빌리티의 취소나 종료를 요청하는 클라이언트는 서버에 의해 무시됩니다. 클라이언트는 여전히 어빌리티의 실행을 요청할 수 있습니다.      |
+| `ServerOnly`            | 서버가 이 어빌리티의 실행과 종료를 모두 제어합니다. 클라이언트의 모든 요청은 무시됩니다.                                              |
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-at"></a>
-### 4.7 Ability Tasks
+### 4.7 어빌리티 태스크
 
 <a name="concepts-at-definition"></a>
-### 4.7.1 Ability Task Definition
-`GameplayAbilities` only execute in one frame. This does not allow for much flexibility on its own. To do actions that happen over time or require responding to delegates fired at some point later in time we use latent actions called `AbilityTasks`.
+### 4.7.1 어빌리티 태스크 정의
+`GameplayAbilities`는 한 프레임에서만 실행됩니다. 이것만으로는 많은 유연성을 제공하지 않습니다. 시간이 지남에 따라 발생하거나 나중에 특정 시점에 발생하는 델리게이트에 응답해야 하는 작업을 수행하기 위해 `AbilityTasks`라는 지연 작업을 사용합니다.
 
-GAS comes with many `AbilityTasks` out of the box:
-* Tasks for moving Characters with `RootMotionSource`
-* A task for playing animation montages
-* Tasks for responding to `Attribute` changes
-* Tasks for responding to `GameplayEffect` changes
-* Tasks for responding to player input
-* and more
+GAS는 기본적으로 많은 `AbilityTasks`를 제공합니다:
+* `RootMotionSource`로 캐릭터를 움직이는 태스크
+* 애니메이션 몽타주를 재생하는 태스크
+* `Attribute` 변경에 응답하는 태스크
+* `GameplayEffect` 변경에 응답하는 태스크
+* 플레이어 입력에 응답하는 태스크
+* 그 외 다수
 
-The `UAbilityTask` constructor enforces a hardcoded game-wide maximum of 1000 concurrent `AbilityTasks` running at the same time. Keep this in mind when designing `GameplayAbilities` for games that can have hundreds of characters in the world at the same time like RTS games.
+`UAbilityTask` 생성자는 동시에 실행되는 `AbilityTasks`의 게임 전체 최대 수를 1000개로 제한합니다. RTS 게임과 같이 동시에 수백 개의 캐릭터가 월드에 존재할 수 있는 게임의 `GameplayAbilities`를 설계할 때 이 점을 유의해야 합니다.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-at-definition"></a>
-### 4.7.2 Custom Ability Tasks
-Often you will be creating your own custom `AbilityTasks` (in C++). The Sample Project comes with two custom `AbilityTasks`:
-1. `PlayMontageAndWaitForEvent` is a combination of the default `PlayMontageAndWait` and `WaitGameplayEvent` `AbilityTasks`. This allows animation montages to send gameplay events from `AnimNotifies` back to the `GameplayAbility` that started them. Use this to trigger actions at specific times during animation montages.
-1. `WaitReceiveDamage` listens for the `OwnerActor` to receive damage. The passive armor stacks `GameplayAbility` removes a stack of armor when the hero receives an instance of damage.
+### 4.7.2 사용자 정의 어빌리티 태스크
+종종 자신만의 사용자 정의 `AbilityTasks`를 만들게 될 것입니다(C++에서). 샘플 프로젝트는 두 개의 사용자 정의 `AbilityTasks`를 포함하고 있습니다:
+1. `PlayMontageAndWaitForEvent`는 기본 `PlayMontageAndWait`와 `WaitGameplayEvent` `AbilityTasks`의 조합입니다. 이를 통해 애니메이션 몽타주가 `AnimNotifies`에서 게임플레이 이벤트를 시작한 `GameplayAbility`로 다시 보낼 수 있습니다. 이를 사용하여 애니메이션 몽타주 중 특정 시간에 동작을 트리거합니다.
+2. `WaitReceiveDamage`는 `OwnerActor`가 데미지를 받는 것을 수신합니다. 패시브 방어구 스택 `GameplayAbility`는 영웅이 데미지 인스턴스를 받을 때 방어구 스택을 하나 제거합니다.
 
-`AbilityTasks` are composed of:
-* A static function that creates new instances of the `AbilityTask`
-* Delegates that are broadcasted on when the `AbilityTask` completes its purpose
-* An `Activate()` function to start its main job, bind to external delegates, etc.
-* An `OnDestroy()` function for cleanup, including external delegates that it bound to
-* Callback functions for any external delegates that it bound to
-* Member variables and any internal helper functions
+`AbilityTasks`는 다음으로 구성됩니다:
+* `AbilityTask`의 새 인스턴스를 생성하는 정적 함수
+* `AbilityTask`가 목적을 달성했을 때 브로드캐스트되는 델리게이트
+* 주요 작업을 시작하고 외부 델리게이트에 바인딩하는 등의 `Activate()` 함수
+* 바인딩한 외부 델리게이트를 포함한 정리를 위한 `OnDestroy()` 함수
+* 바인딩한 모든 외부 델리게이트에 대한 콜백 함수
+* 멤버 변수 및 내부 헬퍼 함수
 
-**Note:** `AbilityTasks` can only declare one type of output delegate. All of your output delegates must be of this type, regardless if they use the parameters or not. Pass default values for unused delegate parameters.
+**참고:** `AbilityTasks`는 한 가지 유형의 출력 델리게이트만 선언할 수 있습니다. 매개변수를 사용하는지 여부와 관계없이 모든 출력 델리게이트는 이 유형이어야 합니다. 사용하지 않는 델리게이트 매개변수에 대해서는 기본값을 전달하세요.
 
-`AbilityTasks` only run on the Client or Server that is running the owning `GameplayAbility`; however, `AbilityTasks` can be set to run on simulated clients by setting `bSimulatedTask = true;` in the `AbilityTask` constructor, overriding `virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent);`, and setting any member variables to be replicated. This is only useful in rare situations like movement `AbilityTasks` where you don't want to replicate every movement change but instead simulate the entire movement `AbilityTask`. All of the `RootMotionSource` `AbilityTasks` do this. See `AbilityTask_MoveToLocation.h/.cpp` as an example.
+`AbilityTasks`는 소유 `GameplayAbility`를 실행하는 클라이언트나 서버에서만 실행됩니다. 그러나 `AbilityTask` 생성자에서 `bSimulatedTask = true;`를 설정하고, `virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent);`를 오버라이드하고, 모든 멤버 변수를 복제되도록 설정하여 시뮬레이션된 클라이언트에서 실행되도록 설정할 수 있습니다. 이는 모든 움직임 변경을 복제하지 않고 전체 움직임 `AbilityTask`를 시뮬레이션하려는 움직임 `AbilityTasks`와 같은 드문 상황에서만 유용합니다. 모든 `RootMotionSource` `AbilityTasks`가 이를 수행합니다. 예시로 `AbilityTask_MoveToLocation.h/.cpp`를 참조하세요.
 
-`AbilityTasks` can `Tick` if you set `bTickingTask = true;` in the `AbilityTask` constructor and override `virtual void TickTask(float DeltaTime);`. This is useful when you need to lerp values smoothly across frames. See `AbilityTask_MoveToLocation.h/.cpp` as an example.
+`AbilityTask` 생성자에서 `bTickingTask = true;`를 설정하고 `virtual void TickTask(float DeltaTime);`를 오버라이드하면 `AbilityTasks`가 `Tick`할 수 있습니다. 이는 프레임 간에 값을 부드럽게 보간해야 할 때 유용합니다. 예시로 `AbilityTask_MoveToLocation.h/.cpp`를 참조하세요.
 
-**[⬆ Back to Top](#table-of-contents)**
+**[⬆ 목차로 돌아가기](#table-of-contents)**
 
 <a name="concepts-at-using"></a>
 ### 4.7.3 Using Ability Tasks
